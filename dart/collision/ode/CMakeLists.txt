@@ -15,6 +15,11 @@ set(component_name collision-ode)
 # Add target
 dart_add_library(${target_name} ${hdrs} ${srcs} ${detail_hdrs} ${detail_srcs})
 target_link_libraries(${target_name} PUBLIC dart ODE::ODE)
+if(ENABLE_PROFILER)
+  target_link_libraries(${target_name}
+    PRIVATE
+    ignition-common${IGN_COMMON_VER}::profiler)
+endif()
 
 # Component
 add_component(${PROJECT_NAME} ${component_name})

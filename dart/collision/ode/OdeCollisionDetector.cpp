@@ -49,6 +49,8 @@
 #include "dart/dynamics/SoftMeshShape.hpp"
 #include "dart/dynamics/SphereShape.hpp"
 
+#include "ignition/common/Profiler.hh"
+
 namespace dart {
 namespace collision {
 
@@ -153,13 +155,32 @@ bool OdeCollisionDetector::collide(
     const CollisionOption& option,
     CollisionResult* result)
 {
+  IGN_PROFILE("OdeCollisionDetector::collide");
   auto odeGroup = static_cast<OdeCollisionGroup*>(group);
-  odeGroup->updateEngineData();
+  {
+    IGN_PROFILE("odeGroup->updateEngineData");
+    odeGroup->updateEngineData();
+  }
 
   OdeCollisionCallbackData data(option, result);
   data.contactGeoms = contactCollisions;
 
-  dSpaceCollide(odeGroup->getOdeSpaceId(), &data, CollisionCallback);
+  {
+    IGN_PROFILE("dSpaceCollide:collide");
+    dSpaceCollide(odeGroup->getOdeSpaceId(), &data, CollisionCallback);
+  }
+  std::size_t numGeoms = dSpaceGetNumGeoms(odeGroup->getOdeSpaceId());
+  static bool printedOnce = false;
+  if (!printedOnce)
+  {
+    std::cout << "Objects: " << numGeoms << std::endl;
+    // for (int i = 0; i < numGeoms; ++i)
+    // {
+    //   auto o1 = dSpaceGetGeom(odeGroup->getOdeSpaceId(), i);
+    //   std::cout << dGeomGetCategoryBits(o1) << ": " << std::hex << dGeomGetCollideBits(o1) << std::endl;
+    // }
+    printedOnce = true;
+  }
 
   return data.numContacts > 0;
 }

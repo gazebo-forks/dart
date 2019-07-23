@@ -39,6 +39,8 @@
 #include "dart/dynamics/BodyNode.hpp"
 #include "dart/dynamics/Skeleton.hpp"
 
+#include "ignition/common/Profiler.hh"
+
 namespace dart {
 namespace collision {
 
@@ -184,10 +186,14 @@ const dynamics::ShapeFrame* CollisionGroup::getShapeFrame(
 bool CollisionGroup::collide(
     const CollisionOption& option, CollisionResult* result)
 {
+  IGN_PROFILE("CollisionGroup::collide");
   if (mUpdateAutomatically)
     update();
 
-  return mCollisionDetector->collide(this, option, result);
+  {
+    IGN_PROFILE("mCollisionDetector->collide");
+    return mCollisionDetector->collide(this, option, result);
+  }
 }
 
 //==============================================================================

@@ -52,6 +52,8 @@
 #include "dart/math/Geometry.hpp"
 #include "dart/math/Helpers.hpp"
 
+#include "ignition/common/Profiler.hh"
+
 #define SET_ALL_FLAGS(X)                                                       \
   for (auto& cache : mTreeCache)                                               \
     cache.mDirty.X = true;                                                     \

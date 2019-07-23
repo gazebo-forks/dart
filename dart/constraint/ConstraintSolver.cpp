@@ -474,10 +474,7 @@ void ConstraintSolver::updateConstraints()
   //----------------------------------------------------------------------------
   mCollisionResult.clear();
 
-  {
-    IGN_PROFILE("mCollisionGroup->collide");
-    mCollisionGroup->collide(mCollisionOption, &mCollisionResult);
-  }
+  mCollisionGroup->collide(mCollisionOption, &mCollisionResult);
 
   // Destroy previous contact constraints
   mContactConstraints.clear();

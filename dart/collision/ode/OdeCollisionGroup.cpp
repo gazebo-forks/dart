@@ -77,6 +77,7 @@ void OdeCollisionGroup::addCollisionObjectToEngine(CollisionObject* object)
   auto casted = static_cast<OdeCollisionObject*>(object);
   auto geomId = casted->getOdeGeomId();
   dSpaceAdd(mSpaceId, geomId);
+  // std::cout << mSpaceId << " added " << geomId << " for " << object->getShapeFrame()->getName()<< std::endl;
 
   initializeEngineData();
 }
@@ -90,6 +91,7 @@ void OdeCollisionGroup::addCollisionObjectsToEngine(
     auto casted = static_cast<OdeCollisionObject*>(collObj);
     auto geomId = casted->getOdeGeomId();
     dSpaceAdd(mSpaceId, geomId);
+    // std::cout << mSpaceId << " added " << geomId << std::endl;
   }
 
   initializeEngineData();
