@@ -196,6 +196,8 @@ const std::string& Joint::getName() const
 void Joint::setActuatorType(Joint::ActuatorType _actuatorType)
 {
   mAspectProperties.mActuatorType = _actuatorType;
+  if (mChildBodyNode)
+    mChildBodyNode->dirtyReactive();
 }
 
 //==============================================================================
@@ -296,6 +298,18 @@ SkeletonPtr Joint::getSkeleton()
 std::shared_ptr<const Skeleton> Joint::getSkeleton() const
 {
   return mChildBodyNode ? mChildBodyNode->getSkeleton() : nullptr;
+}
+
+//==============================================================================
+Skeleton* Joint::getRawSkeleton()
+{
+  return mChildBodyNode->getRawSkeleton();
+}
+
+//==============================================================================
+const Skeleton* Joint::getRawSkeleton() const
+{
+  return mChildBodyNode->getRawSkeleton();
 }
 
 //==============================================================================

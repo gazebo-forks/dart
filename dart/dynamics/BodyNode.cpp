@@ -165,7 +165,7 @@ ConstSkeletonPtr SkeletonRefCountingBase::getSkeleton() const
 /// overall
 #define SKEL_SET_FLAGS(X)                                                      \
   {                                                                            \
-    SkeletonPtr skel = getSkeleton();                                          \
+    Skeleton* skel = getRawSkeleton();                                         \
     if (skel)                                                                  \
     {                                                                          \
       skel->mTreeCache[mTreeIndex].mDirty.X = true;                            \
@@ -586,7 +586,7 @@ const Inertia& BodyNode::getInertia() const
 //==============================================================================
 const math::Inertia& BodyNode::getArticulatedInertia() const
 {
-  const ConstSkeletonPtr& skel = getSkeleton();
+  const Skeleton* const skel = getRawSkeleton();
   if (skel && CHECK_FLAG(mArticulatedInertia))
     skel->updateArticulatedInertia(mTreeIndex);
 
@@ -596,7 +596,7 @@ const math::Inertia& BodyNode::getArticulatedInertia() const
 //==============================================================================
 const math::Inertia& BodyNode::getArticulatedInertiaImplicit() const
 {
-  const ConstSkeletonPtr& skel = getSkeleton();
+  const Skeleton* const skel = getRawSkeleton();
   if (skel && CHECK_FLAG(mArticulatedInertia))
     skel->updateArticulatedInertia(mTreeIndex);
 
@@ -753,7 +753,7 @@ static bool checkSkeletonNodeAgreement(
     dterr << "[BodyNode::" << _function << "] Attempting to " << _operation
           << " a BodyNode tree starting "
           << "from [" << _bodyNode->getName() << "] in the Skeleton named ["
-          << _bodyNode->getSkeleton()->getName()
+          << _bodyNode->getRawSkeleton()->getName()
           << "] into a nullptr Skeleton.\n";
     return false;
   }
@@ -764,11 +764,11 @@ static bool checkSkeletonNodeAgreement(
           << "Skeleton [" << _newSkeleton->getName() << "] (" << _newSkeleton
           << ") and the specified new parent BodyNode ["
           << _newParent->getName() << "] whose actual Skeleton is named ["
-          << _newParent->getSkeleton()->getName() << "] ("
-          << _newParent->getSkeleton() << ") while attempting to " << _operation
+          << _newParent->getRawSkeleton()->getName() << "] ("
+          << _newParent->getRawSkeleton() << ") while attempting to " << _operation
           << " the BodyNode [" << _bodyNode->getName() << "] from the "
-          << "Skeleton named [" << _bodyNode->getSkeleton()->getName() << "] ("
-          << _bodyNode->getSkeleton() << ").\n";
+          << "Skeleton named [" << _bodyNode->getRawSkeleton()->getName() << "] ("
+          << _bodyNode->getRawSkeleton() << ").\n";
     return false;
   }
 
@@ -1300,6 +1300,8 @@ BodyNode::BodyNode(
     mFgravity(Eigen::Vector6d::Zero()),
     mArtInertia(Eigen::Matrix6d::Identity()),
     mArtInertiaImplicit(Eigen::Matrix6d::Identity()),
+    mIsReactive(true),
+    mIsReactiveDirty(true),
     mBiasForce(Eigen::Vector6d::Zero()),
     mCg_dV(Eigen::Vector6d::Zero()),
     mCg_F(Eigen::Vector6d::Zero()),
@@ -1370,6 +1372,7 @@ Node* BodyNode::cloneNode(BodyNode* /*bn*/) const
 void BodyNode::init(const SkeletonPtr& _skeleton)
 {
   mSkeleton = _skeleton;
+  mRawSkeleton = _skeleton.get();
   assert(_skeleton);
   if (mReferenceCount > 0)
   {
@@ -1402,6 +1405,10 @@ void BodyNode::init(const SkeletonPtr& _skeleton)
 
   // Sort
   std::sort(mDependentGenCoordIndices.begin(), mDependentGenCoordIndices.end());
+
+  // Since mDependentGenCoordIndices has changed, we no longer know if this
+  // body is reactive or not. It should be re-checked.
+  dirtyReactive();
 
   mDependentDofs.clear();
   mDependentDofs.reserve(mDependentGenCoordIndices.size());
@@ -1512,7 +1519,7 @@ void BodyNode::dirtyTransform()
 
   mNeedTransformUpdate = true;
 
-  const SkeletonPtr& skel = getSkeleton();
+  const Skeleton* const skel = getRawSkeleton();
   if (skel)
   {
     // All of these depend on the world transform of this BodyNode, so they must
@@ -1545,7 +1552,7 @@ void BodyNode::dirtyVelocity()
   mNeedVelocityUpdate = true;
   mIsPartialAccelerationDirty = true;
 
-  const SkeletonPtr& skel = getSkeleton();
+  const Skeleton* const skel = getRawSkeleton();
   if (skel)
   {
     SET_FLAGS(mCoriolisForces);
@@ -1586,7 +1593,7 @@ void BodyNode::notifyArticulatedInertiaUpdate()
 //==============================================================================
 void BodyNode::dirtyArticulatedInertia()
 {
-  const SkeletonPtr& skel = getSkeleton();
+  Skeleton* const skel = getRawSkeleton();
   if (skel)
     skel->dirtyArticulatedInertia(mTreeIndex);
 }
@@ -1614,6 +1621,23 @@ void BodyNode::dirtyCoriolisForces()
 {
   SKEL_SET_FLAGS(mCoriolisForces);
   SKEL_SET_FLAGS(mCoriolisAndGravityForces);
+}
+
+//==============================================================================
+void BodyNode::dirtyReactive()
+{
+  std::vector<BodyNode*> descendents;
+  descendents.push_back(this);
+
+  while(!descendents.empty())
+  {
+    BodyNode* current = descendents.back();
+    descendents.pop_back();
+
+    current->mIsReactiveDirty = true;
+    for(BodyNode* child : current->mChildBodyNodes)
+      descendents.push_back(child);
+  }
 }
 
 //==============================================================================
@@ -1721,6 +1745,68 @@ void BodyNode::updateArtInertia(double _timeStep) const
   // Verification
   //  assert(!math::isNan(mArtInertia));
   assert(!math::isNan(mArtInertiaImplicit));
+}
+
+//==============================================================================
+void BodyNode::updateReactive() const
+{
+  const Skeleton* const skel = getRawSkeleton();
+  if (skel && skel->isMobile() && getNumDependentGenCoords() > 0)
+  {
+    std::vector<const BodyNode*> bodies;
+
+    bool chainIsReactive = false;
+    const BodyNode* body = this;
+    while (body)
+    {
+      if (!body->mIsReactiveDirty)
+      {
+        if (body->mIsReactive)
+        {
+          // an ancestor is reactive, so all bodies on the chain are reactive
+          chainIsReactive = true;
+          break;
+        }
+      }
+      else
+      {
+        // This body's reactive flag is dirty, so we should update it along with
+        // the rest.
+        bodies.push_back(body);
+
+        if (body->mParentJoint->isDynamic())
+        {
+          // If this body has a dynamic parent joint, then it will be reactive
+          chainIsReactive = true;
+
+          // All the descendents on this chain are therefore also reactive, so
+          // we can stop investigating.
+          break;
+        }
+      }
+
+      // We don't know if the chain might be reactive yet, so we should also
+      // check the parent body.
+      body = body->mParentBodyNode;
+    }
+
+    for (const BodyNode* body : bodies)
+    {
+      body->mIsReactive = chainIsReactive;
+      body->mIsReactiveDirty = false;
+    }
+  }
+  else
+  {
+    const BodyNode* body = this;
+    while (body && body->mIsReactiveDirty)
+    {
+      body->mIsReactive = false;
+      body->mIsReactiveDirty = false;
+
+      body = body->mParentBodyNode;
+    }
+  }
 }
 
 //==============================================================================
@@ -2036,28 +2122,10 @@ Eigen::Vector3d BodyNode::getAngularMomentum(const Eigen::Vector3d& _pivot)
 //==============================================================================
 bool BodyNode::isReactive() const
 {
-  const ConstSkeletonPtr& skel = getSkeleton();
-  if (skel && skel->isMobile() && getNumDependentGenCoords() > 0)
-  {
-    // Check if all the ancestor joints are motion prescribed.
-    const BodyNode* body = this;
-    while (body != nullptr)
-    {
-      if (body->mParentJoint->isDynamic())
-        return true;
+  if (mIsReactiveDirty)
+    updateReactive();
 
-      body = body->mParentBodyNode;
-    }
-    // TODO: Checking if all the ancestor joints are motion prescribed is
-    // expensive. It would be good to evaluate this in advance and update only
-    // when necessary.
-
-    return false;
-  }
-  else
-  {
-    return false;
-  }
+  return mIsReactive;
 }
 
 //==============================================================================
