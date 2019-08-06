@@ -62,6 +62,12 @@ OdeCollisionGroup::~OdeCollisionGroup()
   // This is important to call this function before detroy ODE space.
   removeAllShapeFrames();
 
+  for (const auto &space : mSpaces)
+  {
+    dSpaceDestroy(space.second);
+  }
+  mSpaces.clear();
+
   dSpaceDestroy(mSpaceId);
 }
 
@@ -107,6 +113,11 @@ void OdeCollisionGroup::removeCollisionObjectFromEngine(CollisionObject* object)
   auto space = getOrCreateObjectSpaceId(object);
 
   dSpaceRemove(space, geomId);
+  // If the space is empty, remove it as well
+  if (dSpaceGetNumGeoms(space) == 0)
+  {
+    destroySpaceOfObject(object);
+  }
 
   initializeEngineData();
 }
@@ -144,6 +155,12 @@ dSpaceID OdeCollisionGroup::getOrCreateObjectSpaceId(CollisionObject* object)
   }
 
   return iter->second;
+}
+
+void OdeCollisionGroup::destroySpaceOfObject(CollisionObject* object)
+{
+  auto key = object->getShapeFrame()->asShapeNode()->getBodyNodePtr();
+  mSpaces.erase(key);
 }
 
 } // namespace collision

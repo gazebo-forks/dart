@@ -79,6 +79,8 @@ protected:
 
   dSpaceID getOrCreateObjectSpaceId(CollisionObject* object);
 
+  void destroySpaceOfObject(CollisionObject* object);
+
 protected:
   /// Top-level space for all sub-spaces/collisions
   dSpaceID mSpaceId;
