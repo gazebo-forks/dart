@@ -205,8 +205,16 @@ void FreeJoint::setTransform(
 void FreeJoint::setRelativeSpatialVelocity(
     const Eigen::Vector6d& newSpatialVelocity)
 {
+  const Eigen::Vector6d &vel = getVelocitiesStatic();
+  Eigen::Vector6d accelInFixed = getAccelerationsStatic();
+  accelInFixed.tail<3>() += (vel.head<3>().cross(vel.tail<3>()));
+
   setVelocitiesStatic(
       getRelativeJacobianStatic().inverse() * newSpatialVelocity);
+  // vel now points to the updated velocity
+  Eigen::Vector6d accel = accelInFixed;
+  accel.tail<3>() -= vel.head<3>().cross(vel.tail<3>());
+  // setAccelerationsStatic(accel);
 }
 
 //==============================================================================
@@ -544,8 +552,8 @@ Eigen::Vector6d FreeJoint::getPositionDifferencesStatic(
 {
   const Eigen::Isometry3d T1 = convertToTransform(_q1);
   const Eigen::Isometry3d T2 = convertToTransform(_q2);
-
-  return convertToPositions(T1.inverse() * T2);
+  const Eigen::Isometry3d Tdiff = T1.inverse() * T2;
+  return math::AdR(Tdiff.inverse(), convertToPositions(Tdiff));
 }
 
 //==============================================================================
@@ -589,10 +597,51 @@ bool FreeJoint::isCyclic(std::size_t _index) const
 //==============================================================================
 void FreeJoint::integratePositions(double _dt)
 {
-  const Eigen::Isometry3d Qnext
-      = getQ() * convertToTransform(getVelocitiesStatic() * _dt);
+  std::cout << "Int positions" << std::endl;
+  std::cout << "Before sp vel: " << getChildBodyNode()->getSpatialVelocity().transpose() << std::endl;
+  std::cout << "Before sp accel: " << getChildBodyNode()->getSpatialAcceleration().transpose() << std::endl;
+  std::cout << "Before vel: " << getChildBodyNode()->getLinearVelocity().transpose() << std::endl;
+  std::cout << "Before accel: " << getChildBodyNode()->getLinearAcceleration().transpose() << std::endl;
+  const Eigen::Isometry3d Qdiff
+      =  convertToTransform(getVelocitiesStatic() * _dt);
+  const Eigen::Isometry3d Qnext = getQ()* Qdiff;
+
+  // This is setVelocitiesStatic(math::AdR(Qnext.inverse() * getQ(), vel)), but
+  // using Qdiff instead.
+  setVelocitiesStatic(math::AdR(Qdiff.inverse(), getVelocitiesStatic()));
+  setAccelerationsStatic(math::AdR(Qdiff.inverse(), getAccelerationsStatic()));
 
   setPositionsStatic(convertToPositions(Qnext));
+  std::cout << "After sp vel: " << getChildBodyNode()->getSpatialVelocity().transpose() << std::endl;
+  std::cout << "After sp accel: " << getChildBodyNode()->getSpatialAcceleration().transpose() << std::endl;
+  std::cout << "After vel: " << getChildBodyNode()->getLinearVelocity().transpose() << std::endl;
+  std::cout << "After accel: " << getChildBodyNode()->getLinearAcceleration().transpose() << std::endl;
+  std::cout << std::endl;
+}
+
+//==============================================================================
+void FreeJoint::integrateVelocities(double _dt)
+{
+  std::cout << "Int velocities" << std::endl;
+  std::cout << "Before sp vel: " << getChildBodyNode()->getSpatialVelocity().transpose() << std::endl;
+  std::cout << "Before sp accel: " << getChildBodyNode()->getSpatialAcceleration().transpose() << std::endl;
+  std::cout << "Before vel: " << getChildBodyNode()->getLinearVelocity().transpose() << std::endl;
+  std::cout << "Before accel: " << getChildBodyNode()->getLinearAcceleration().transpose() << std::endl;
+  const Eigen::Vector6d &vel = getVelocitiesStatic();
+  Eigen::Vector6d linearAccel = getAccelerationsStatic();
+  linearAccel.tail<3>() += (vel.head<3>().cross(vel.tail<3>()));
+
+  setVelocitiesStatic(math::integrateVelocity<math::SE3Space>(
+      getVelocitiesStatic(), linearAccel,  _dt));
+  // vel now points to the updated velocity
+  Eigen::Vector6d accel = linearAccel;
+  accel.tail<3>() -= vel.head<3>().cross(vel.tail<3>());
+  setAccelerationsStatic(accel);
+  std::cout << "After sp vel: " << getChildBodyNode()->getSpatialVelocity().transpose() << std::endl;
+  std::cout << "After sp accel: " << getChildBodyNode()->getSpatialAcceleration().transpose() << std::endl;
+  std::cout << "After vel: " << getChildBodyNode()->getLinearVelocity().transpose() << std::endl;
+  std::cout << "After accel: " << getChildBodyNode()->getLinearAcceleration().transpose() << std::endl;
+  std::cout << std::endl;
 }
 
 //==============================================================================
