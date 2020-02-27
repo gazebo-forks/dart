@@ -615,11 +615,23 @@ void ContactConstraint::getVelocityChange(double* vel, bool withCfm)
   Eigen::Map<Eigen::VectorXd> velMap(vel, static_cast<int>(mDim));
   velMap.setZero();
 
+  Eigen::VectorXd imp1(mDim);
+  Eigen::VectorXd imp2(mDim);
+  imp1.setZero();
+  imp2.setZero();
   if (mBodyNodeA->getSkeleton()->isImpulseApplied() && mBodyNodeA->isReactive())
-    velMap += mSpatialNormalA.transpose() * mBodyNodeA->getBodyVelocityChange();
+  {
+    auto delVel = mSpatialNormalA.transpose() * mBodyNodeA->getBodyVelocityChange();
+    imp1 = mBodyNodeA->getMass() * delVel;
+    velMap += delVel;
+  }
 
   if (mBodyNodeB->getSkeleton()->isImpulseApplied() && mBodyNodeB->isReactive())
-    velMap += mSpatialNormalB.transpose() * mBodyNodeB->getBodyVelocityChange();
+  {
+    auto delVel = mSpatialNormalB.transpose() * mBodyNodeB->getBodyVelocityChange();
+    imp2 = mBodyNodeB->getMass() * delVel;
+    velMap += delVel;
+  }
 
   // Add small values to the diagnal to keep it away from singular, similar to
   // cfm variable in ODE
@@ -631,10 +643,10 @@ void ContactConstraint::getVelocityChange(double* vel, bool withCfm)
         vel[0] += vel[0] * mConstraintForceMixing;
         break;
       case 1:
-        vel[1] += vel[1] * (mSlipCompliance / mTimeStep);
+        vel[1] += (imp1 + imp2)[1] * mSlipCompliance / mTimeStep ;
         break;
       case 2:
-        vel[2] += vel[2] * (mSecondarySlipCompliance / mTimeStep);
+        vel[2] += (imp1 + imp2)[2] * mSecondarySlipCompliance / mTimeStep ;
         break;
       default:
         vel[mAppliedImpulseIndex]

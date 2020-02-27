@@ -51,7 +51,7 @@ dynamics::SkeletonPtr createFloor()
       = floor->createJointAndBodyNodePair<dynamics::WeldJoint>(nullptr).second;
 
   // Give the body a shape
-  double floorWidth = 10.0;
+  double floorWidth = 100.0;
   double floorHeight = 0.01;
   auto box = std::make_shared<dynamics::BoxShape>(
       Eigen::Vector3d(floorWidth, floorWidth, floorHeight));
@@ -115,6 +115,58 @@ TEST(Friction, FrictionPerShapeNode)
       // friction is zero.
       const auto y2 = body2->getTransform().translation()[1];
       EXPECT_LE(y2, -0.17889);
+    }
+  }
+}
+
+//==============================================================================
+TEST(Friction, SlipVelocity)
+{
+  auto skeleton1 = createSphere(0.5);
+  auto body1 = skeleton1->getRootBodyNode();
+  body1->setMass(10);
+  // Set the COM to the bottom of the sphere so it doesn't roll.
+  body1->setLocalCOM({0, 0, -0.5});
+  auto shapeNode1 = body1->getShapeNode(0);
+  EXPECT_DOUBLE_EQ(shapeNode1->getDynamicsAspect()->getFrictionCoeff(), 1.0);
+
+  shapeNode1->getDynamicsAspect()->setFirstFrictionDirection({1, 0, 0});
+
+  auto world = simulation::World::create();
+
+  auto floor = createFloor();
+  EXPECT_DOUBLE_EQ(
+      floor->getShapeNode(0)->getDynamicsAspect()->getFrictionCoeff(), 1.0);
+  world->addSkeleton(floor);
+  world->addSkeleton(skeleton1);
+
+  const double slipParam = 0.001;
+  const Eigen::Vector3d extForce{body1->getMass() * 5, 0, 0};
+  const auto numSteps = 2000;
+  for (auto i = 0u; i < numSteps; ++i)
+  {
+    body1->addExtForce(extForce, body1->getLocalCOM(), false);
+    world->step();
+    const auto linVel = body1->getLinearVelocity();
+    const auto angVel = body1->getAngularVelocity();
+    const auto x1 = linVel[0];
+
+    EXPECT_NEAR(0.0, angVel.norm(), 0.001);
+
+    // Wait until the first box settle-in on the ground
+    if (i == 300)
+    {
+      // Expect that the friction is high enough to prevent motion
+      EXPECT_NEAR(x1, 0.0, 0.001);
+
+      // Now set slip
+      body1->getShapeNode(0)->getDynamicsAspect()->setSlipCompliance(slipParam);
+    }
+    // Wait for the ball to accelerate to its slip velocity
+    else if (i > 1000)
+    {
+      const double expVel = slipParam * (extForce.x());
+      EXPECT_NEAR(expVel, x1, 0.001);
     }
   }
 }
