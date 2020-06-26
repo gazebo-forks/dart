@@ -87,6 +87,10 @@ cc_library(
         "dart/gui/glut/*.cpp",
         "dart/gui/osg/*.cpp",
         "dart/gui/osg/render/*.cpp",
+        "dart/gui/*.hpp",
+        "dart/gui/glut/*.hpp",
+        "dart/gui/osg/*.hpp",
+        "dart/gui/osg/render/*.hpp",
     ]),
     hdrs = glob([
         "dart/gui/*.hpp",
@@ -99,6 +103,7 @@ cc_library(
     ],
     deps = [
         ":dart-common",
+        ":dart-dynamics",
         ":dart-external",
         ":dart-math",
         "@eigen3",
