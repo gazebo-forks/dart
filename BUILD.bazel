@@ -103,6 +103,7 @@ cc_library(
     ],
     deps = [
         ":dart-common",
+        ":dart-constraint",
         ":dart-dynamics",
         ":dart-external",
         ":dart-math",
