@@ -195,6 +195,10 @@ cc_library(
         "dart/external/imgui/*.cpp",
         "dart/external/lodepng/*.cpp",
         "dart/external/odelcpsolver/*.cpp",
+        "dart/external/imgui/*.h",
+        "dart/external/ikfast/*.h",
+        "dart/external/lodepng/*.h",
+        "dart/external/odelcpsolver/*.h",
     ]),
     hdrs = glob([
         "dart/external/imgui/*.h",
