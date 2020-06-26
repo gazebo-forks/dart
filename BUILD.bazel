@@ -13,6 +13,7 @@ cc_library(
         ":dart-common",
         ":dart-math",
         ":dart-external",
+        ":dart-optimizer",
     ],
     visibility = ["//visibility:private"],
     alwayslink = 1,
