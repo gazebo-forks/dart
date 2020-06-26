@@ -81,6 +81,7 @@ cc_library(
     deps = [
         ":dart-common",
         ":dart-external",
+        ":dart-math",
         "@eigen3",
     ],
     linkopts = [
