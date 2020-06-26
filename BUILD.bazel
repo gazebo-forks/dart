@@ -303,6 +303,7 @@ cc_library(
         "@eigen3",
         ":dart-dynamics",
         ":dart-collision",
+        ":dart-constraint",
         ":dart-common",
         ":dart-integration",
     ],
