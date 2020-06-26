@@ -3,11 +3,16 @@ cc_library(
     srcs = glob([
         "dart/dynamics/*.cpp",
         "dart/dynamics/detail/*.cpp",
+        "dart/dynamics/*.hpp",
+        "dart/dynamics/detail/*.hpp",
     ]),
     hdrs = glob([
         "dart/dynamics/*.hpp",
         "dart/dynamics/detail/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-common",
@@ -24,11 +29,16 @@ cc_library(
     srcs = glob([
         "dart/math/*.cpp",
         "dart/math/detail/*.cpp",
+        "dart/math/*.hpp",
+        "dart/math/detail/*.hpp",
     ]),
     hdrs = glob([
         "dart/math/*.hpp",
         "dart/math/detail/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-common",
@@ -42,12 +52,18 @@ cc_library(
     srcs = glob([
         "dart/common/*.cpp",
         "dart/common/detail/*.cpp",
+        "dart/common/*.hpp",
+        "dart/common/detail/*.hpp",
+        "dart/config.hpp",
     ]),
     hdrs = glob([
         "dart/common/*.hpp",
         "dart/common/detail/*.hpp",
         "dart/config.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
     ],
@@ -78,6 +94,9 @@ cc_library(
         "dart/gui/osg/*.hpp",
         "dart/gui/osg/render/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         ":dart-common",
         ":dart-external",
@@ -105,11 +124,16 @@ cc_library(
     srcs = glob([
         "dart/collision/*.cpp",
         "dart/collision/detail/*.cpp",
+        "dart/collision/*.hpp",
+        "dart/collision/detail/*.hpp",
     ]),
     hdrs = glob([
         "dart/collision/*.hpp",
         "dart/collision/detail/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-dynamics",
@@ -124,11 +148,16 @@ cc_library(
     srcs = glob([
         "dart/collision/ode/*.cpp",
         "dart/collision/ode/detail/*.cpp",
+        "dart/collision/ode/*.hpp",
+        "dart/collision/ode/detail/*.hpp",
     ]),
     hdrs = glob([
         "dart/collision/ode/*.hpp",
         "dart/collision/ode/detail/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-dynamics",
@@ -146,10 +175,14 @@ cc_library(
     name = "dart-collision-fcl",
     srcs = glob([
         "dart/collision/fcl/*.cpp",
+        "dart/collision/fcl/*.hpp",
     ]),
     hdrs = glob([
         "dart/collision/fcl/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-dynamics",
@@ -165,10 +198,14 @@ cc_library(
     name = "dart-collision-dart",
     srcs = glob([
         "dart/collision/dart/*.cpp",
+        "dart/collision/dart/*.hpp",
     ]),
     hdrs = glob([
         "dart/collision/dart/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-dynamics",
@@ -202,6 +239,9 @@ cc_library(
         "dart/external/lodepng/*.h",
         "dart/external/odelcpsolver/*.h",
     ]),
+    copts = [
+        "-Idart",
+    ],
     hdrs = glob([
         "dart/external/imgui/*.h",
         "dart/external/ikfast/*.h",
@@ -216,11 +256,16 @@ cc_library(
     name = "dart-constraint",
     srcs = glob([
         "dart/constraint/*.cpp",
+        "dart/constraint/*.hpp",
+        "dart/constraint/detail/*.hpp",
     ]),
     hdrs = glob([
         "dart/constraint/*.hpp",
         "dart/constraint/detail/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-dynamics",
@@ -237,11 +282,16 @@ cc_library(
     name = "dart-simulation",
     srcs = glob([
         "dart/simulation/*.cpp",
+        "dart/simulation/*.hpp",
+        "dart/simulation/detail/*.hpp",
     ]),
     hdrs = glob([
         "dart/simulation/*.hpp",
         "dart/simulation/detail/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     deps = [
         "@eigen3",
         ":dart-dynamics",
@@ -257,7 +307,11 @@ cc_library(
     name = "dart-integration",
     srcs = glob([
         "dart/integration/*.cpp",
+        "dart/integration/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
     hdrs = glob([
         "dart/integration/*.hpp",
     ]),
@@ -274,6 +328,9 @@ cc_library(
         "dart/utils/*.cpp",
         "dart/sdf/*.cpp",
         "dart/urdf/*.cpp",
+        "dart/utils/*.hpp",
+        "dart/utils/sdf/*.hpp",
+        "dart/utils/urdf/*.hpp",
     ]),
     hdrs = glob([
         "dart/utils/*.hpp",
@@ -288,6 +345,9 @@ cc_library(
         ":dart-common",
         ":dart-simulation",
     ],
+    copts = [
+        "-Idart",
+    ],
     visibility = ["//visibility:private"],
     alwayslink = 1,
 )
@@ -297,6 +357,8 @@ cc_library(
     srcs = glob([
         "dart/optimizer/*.cpp",
         "dart/optimizer/nlopt/*.cpp",
+        "dart/optimizer/*.hpp",
+        "dart/optimizer/nlopt/*.hpp",
     ]),
     hdrs = glob([
         "dart/optimizer/*.hpp",
@@ -307,6 +369,9 @@ cc_library(
         ":dart-math",
         ":dart-common",
     ],
+    copts = [
+        "-Idart",
+    ],
     visibility = ["//visibility:private"],
     linkopts = ["-lnlopt"],
     alwayslink = 1,
@@ -316,6 +381,7 @@ cc_library(
     name = "dart-lcpsolver",
     srcs = glob([
         "dart/lcpsolver/*.cpp",
+        "dart/lcpsolver/*.hpp",
     ]),
     hdrs = glob([
         "dart/lcpsolver/*.hpp",
@@ -325,6 +391,9 @@ cc_library(
         ":dart-math",
         ":dart-common",
         ":dart-external",
+    ],
+    copts = [
+        "-Idart",
     ],
     visibility = ["//visibility:private"],
     alwayslink = 1,
