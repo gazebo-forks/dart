@@ -1,3 +1,57 @@
+load(
+    "//ign_bazel:generate_include_header.bzl",
+    "generate_include_header",
+)
+
+generated_includes = [
+    "dynamics",
+    "common",
+    "math",
+    "integration",
+    "lcpsolver",
+    "constraint",
+    "optimizer",
+    "simulation",
+]
+
+[
+generate_include_header(
+    name = "%s_genrule" % subdir,
+    out = "dart/%s/%s.hpp" % (subdir, subdir),
+    hdrs = glob([
+        "dart/%s/*.hpp" % subdir,
+    ]),
+) for subdir in generated_includes]
+
+# collision has two subdirectories with generated includes unlike the above
+# so treat it as a separate case
+generate_include_header(
+    name = "collision_fcl_genrule",
+    out = "dart/collision/fcl/fcl.hpp",
+    hdrs = glob([
+        "dart/collision/fcl/*.hpp",
+    ]),
+)
+
+generate_include_header(
+    name = "collision_dart_genrule",
+    out = "dart/collision/dart/dart.hpp",
+    hdrs = glob([
+        "dart/collision/dart/*.hpp",
+    ]),
+)
+
+generate_include_header(
+    name = "collision_genrule",
+    out = "dart/collision/collision.hpp",
+    hdrs = glob([
+        "dart/collision/*.hpp",
+    ]) + [
+        "dart/collision/dart/dart.hpp",
+        "dart/collision/fcl/fcl.hpp",
+    ],
+)
+
 cc_library(
     name = "dart-dynamics",
     srcs = glob([
