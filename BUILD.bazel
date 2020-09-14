@@ -511,8 +511,6 @@ cc_library(
     alwayslink = 1,
 )
 
-cc_library
-
 cc_binary(
     name = "hello_world",
     srcs = [
