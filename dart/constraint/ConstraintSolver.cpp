@@ -485,14 +485,14 @@ void ConstraintSolver::updateConstraints()
 
   // Compare contact pairs while ignoring their order in the pair.
   struct ContactPairCompare {
-    ContactPair SortedPair(const ContactPair &a)
+    ContactPair SortedPair(const ContactPair &a) const
     {
       if (a.first < a.second)
         return std::make_pair(a.second, a.first);
       return a;
     }
 
-    bool operator()(const ContactPair &a, const ContactPair & b)
+    bool operator()(const ContactPair &a, const ContactPair & b) const
     {
       // Sort each pair and then do a lexicographical comparison
       return SortedPair(a) < SortedPair(b);
