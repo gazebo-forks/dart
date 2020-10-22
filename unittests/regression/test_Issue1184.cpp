@@ -117,7 +117,8 @@ TEST(Issue1184, Accuracy)
           object->getBodyNode(0)
               ->createShapeNodeWith<
                   dart::dynamics::VisualAspect,
-                  dart::dynamics::CollisionAspect>(objectShape);
+                  dart::dynamics::CollisionAspect,
+                  dart::dynamics::DynamicsAspect>(objectShape);
 
           world->addSkeleton(object);
 
@@ -126,7 +127,8 @@ TEST(Issue1184, Accuracy)
           ground->createJointAndBodyNodePair<dart::dynamics::WeldJoint>()
               .second->createShapeNodeWith<
                   dart::dynamics::VisualAspect,
-                  dart::dynamics::CollisionAspect>(groundInfo.shape);
+                  dart::dynamics::CollisionAspect,
+                  dart::dynamics::DynamicsAspect>(groundInfo.shape);
 
           Eigen::Isometry3d tf_ground = Eigen::Isometry3d::Identity();
           tf_ground.translate(groundInfo.offset * Eigen::Vector3d::UnitZ());
