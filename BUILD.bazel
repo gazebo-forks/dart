@@ -15,13 +15,15 @@ generated_includes = [
 ]
 
 [
-generate_include_header(
-    name = "%s_genrule" % subdir,
-    out = "dart/%s/%s.hpp" % (subdir, subdir),
-    hdrs = glob([
-        "dart/%s/*.hpp" % subdir,
-    ]),
-) for subdir in generated_includes]
+    generate_include_header(
+        name = "%s_genrule" % subdir,
+        out = "dart/%s/%s.hpp" % (subdir, subdir),
+        hdrs = glob([
+            "dart/%s/*.hpp" % subdir,
+        ]),
+    )
+    for subdir in generated_includes
+]
 
 # collision has two subdirectories with generated includes unlike the above
 # so treat it as a separate case
@@ -69,14 +71,14 @@ cc_library(
     copts = [
         "-Idart",
     ],
-    deps = [
-        "@eigen3",
-        ":dart-common",
-        ":dart-math",
-        ":dart-external",
-        ":dart-optimizer",
-    ],
     visibility = ["//visibility:private"],
+    deps = [
+        ":dart-common",
+        ":dart-external",
+        ":dart-math",
+        ":dart-optimizer",
+        "@eigen3",
+    ],
     alwayslink = 1,
 )
 
@@ -97,11 +99,11 @@ cc_library(
     copts = [
         "-Idart",
     ],
-    deps = [
-        "@eigen3",
-        ":dart-common",
-    ],
     visibility = ["//visibility:private"],
+    deps = [
+        ":dart-common",
+        "@eigen3",
+    ],
     alwayslink = 1,
 )
 
@@ -124,19 +126,19 @@ cc_library(
     copts = [
         "-Idart",
     ],
+    includes = ["."],
+    linkopts = [
+        "-lboost_system",
+        "-lboost_regex",
+        "-lboost_filesystem",
+        "-ltinyxml2",
+        "-lassimp",
+        "-ldl",
+    ],
+    visibility = ["//visibility:private"],
     deps = [
         "@eigen3",
     ],
-    includes = ["."],
-    linkopts = [
-      "-lboost_system",
-      "-lboost_regex",
-      "-lboost_filesystem",
-      "-ltinyxml2",
-      "-lassimp",
-      "-ldl",
-    ],
-    visibility = ["//visibility:private"],
     alwayslink = 1,
 )
 
@@ -161,16 +163,6 @@ cc_library(
     copts = [
         "-Idart",
     ],
-    deps = [
-        ":dart-common",
-        ":dart-constraint",
-        ":dart-dynamics",
-        ":dart-external",
-        ":dart-math",
-        ":dart-simulation",
-        ":dart-utils",
-        "@eigen3",
-    ],
     linkopts = [
         "-losg",
         "-losgDB",
@@ -183,9 +175,18 @@ cc_library(
         "-lGLU",
     ],
     visibility = ["//visibility:private"],
+    deps = [
+        ":dart-common",
+        ":dart-constraint",
+        ":dart-dynamics",
+        ":dart-external",
+        ":dart-math",
+        ":dart-simulation",
+        ":dart-utils",
+        "@eigen3",
+    ],
     alwayslink = 1,
 )
-
 
 cc_library(
     name = "dart-collision-core",
@@ -206,12 +207,12 @@ cc_library(
     copts = [
         "-Idart",
     ],
+    visibility = ["//visibility:private"],
     deps = [
-        "@eigen3",
         ":dart-dynamics",
         ":dart-math",
+        "@eigen3",
     ],
-    visibility = ["//visibility:private"],
     alwayslink = 1,
 )
 
@@ -230,17 +231,17 @@ cc_library(
     copts = [
         "-Idart",
     ],
-    deps = [
-        "@eigen3",
-        ":dart-dynamics",
-        ":dart-math",
-        ":dart-collision-core",
-    ],
-    visibility = ["//visibility:private"],
-    alwayslink = 1,
     linkopts = [
         "-lode",
     ],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":dart-collision-core",
+        ":dart-dynamics",
+        ":dart-math",
+        "@eigen3",
+    ],
+    alwayslink = 1,
 )
 
 cc_library(
@@ -255,14 +256,14 @@ cc_library(
     copts = [
         "-Idart",
     ],
+    linkopts = ["-lfcl"],
+    visibility = ["//visibility:private"],
     deps = [
-        "@eigen3",
+        ":dart-collision-core",
         ":dart-dynamics",
         ":dart-math",
-        ":dart-collision-core",
+        "@eigen3",
     ],
-    visibility = ["//visibility:private"],
-    linkopts = ["-lfcl"],
     alwayslink = 1,
 )
 
@@ -278,25 +279,25 @@ cc_library(
     copts = [
         "-Idart",
     ],
+    visibility = ["//visibility:private"],
     deps = [
-        "@eigen3",
+        ":dart-collision-core",
         ":dart-dynamics",
         ":dart-math",
-        ":dart-collision-core",
+        "@eigen3",
     ],
-    visibility = ["//visibility:private"],
     alwayslink = 1,
 )
 
 cc_library(
     name = "dart-collision",
+    visibility = ["//visibility:private"],
     deps = [
         ":dart-collision-core",
         ":dart-collision-dart",
         ":dart-collision-fcl",
         ":dart-collision-ode",
     ],
-    visibility = ["//visibility:private"],
     alwayslink = 1,
 )
 
@@ -311,15 +312,15 @@ cc_library(
         "dart/external/lodepng/*.h",
         "dart/external/odelcpsolver/*.h",
     ]),
-    copts = [
-        "-Idart",
-    ],
     hdrs = glob([
         "dart/external/imgui/*.h",
         "dart/external/ikfast/*.h",
         "dart/external/lodepng/*.h",
         "dart/external/odelcpsolver/*.h",
     ]),
+    copts = [
+        "-Idart",
+    ],
     visibility = ["//visibility:private"],
     alwayslink = 1,
 )
@@ -340,16 +341,16 @@ cc_library(
     copts = [
         "-Idart",
     ],
+    visibility = ["//visibility:private"],
     deps = [
-        "@eigen3",
-        ":dart-dynamics",
-        ":dart-external",
         ":dart-collision",
         ":dart-common",
+        ":dart-dynamics",
+        ":dart-external",
         ":dart-lcpsolver",
         ":dart-math",
+        "@eigen3",
     ],
-    visibility = ["//visibility:private"],
     alwayslink = 1,
 )
 
@@ -360,7 +361,7 @@ cc_library(
         "dart/simulation/*.hpp",
         "dart/simulation/detail/*.hpp",
     ]) + [
-        "dart/simulation/simulation.hpp"
+        "dart/simulation/simulation.hpp",
     ],
     hdrs = glob([
         "dart/simulation/*.hpp",
@@ -369,15 +370,15 @@ cc_library(
     copts = [
         "-Idart",
     ],
-    deps = [
-        "@eigen3",
-        ":dart-dynamics",
-        ":dart-collision",
-        ":dart-constraint",
-        ":dart-common",
-        ":dart-integration",
-    ],
     visibility = ["//visibility:private"],
+    deps = [
+        ":dart-collision",
+        ":dart-common",
+        ":dart-constraint",
+        ":dart-dynamics",
+        ":dart-integration",
+        "@eigen3",
+    ],
     alwayslink = 1,
 )
 
@@ -389,16 +390,16 @@ cc_library(
     ]) + [
         "dart/integration/integration.hpp",
     ],
-    copts = [
-        "-Idart",
-    ],
     hdrs = glob([
         "dart/integration/*.hpp",
     ]),
+    copts = [
+        "-Idart",
+    ],
+    visibility = ["//visibility:private"],
     deps = [
         "@eigen3",
     ],
-    visibility = ["//visibility:private"],
     alwayslink = 1,
 )
 
@@ -417,18 +418,18 @@ cc_library(
         "dart/utils/sdf/*.hpp",
         "dart/utils/urdf/*.hpp",
     ]),
-    deps = [
-        "@eigen3",
-        ":dart-dynamics",
-        ":dart-math",
-        ":dart-collision",
-        ":dart-common",
-        ":dart-simulation",
-    ],
     copts = [
         "-Idart",
     ],
     visibility = ["//visibility:private"],
+    deps = [
+        ":dart-collision",
+        ":dart-common",
+        ":dart-dynamics",
+        ":dart-math",
+        ":dart-simulation",
+        "@eigen3",
+    ],
     alwayslink = 1,
 )
 
@@ -446,16 +447,16 @@ cc_library(
         "dart/optimizer/*.hpp",
         "dart/optimizer/nlopt/*.hpp",
     ]),
-    deps = [
-        "@eigen3",
-        ":dart-math",
-        ":dart-common",
-    ],
     copts = [
         "-Idart",
     ],
-    visibility = ["//visibility:private"],
     linkopts = ["-lnlopt"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":dart-common",
+        ":dart-math",
+        "@eigen3",
+    ],
     alwayslink = 1,
 )
 
@@ -470,16 +471,16 @@ cc_library(
     hdrs = glob([
         "dart/lcpsolver/*.hpp",
     ]),
-    deps = [
-        "@eigen3",
-        ":dart-math",
-        ":dart-common",
-        ":dart-external",
-    ],
     copts = [
         "-Idart",
     ],
     visibility = ["//visibility:private"],
+    deps = [
+        ":dart-common",
+        ":dart-external",
+        ":dart-math",
+        "@eigen3",
+    ],
     alwayslink = 1,
 )
 
@@ -492,22 +493,22 @@ cc_library(
     hdrs = [
         "dart/dart.hpp",
     ],
-    deps = [
-        ":dart-math",
-        ":dart-common",
-        ":dart-optimizer",
-        ":dart-utils",
-        ":dart-integration",
-        ":dart-dynamics",
-        ":dart-simulation",
-        ":dart-lcpsolver",
-        ":dart-constraint",
-        ":dart-collision",
-        ":dart-external",
-        ":dart-gui",
-    ],
     includes = ["dart"],
     visibility = ["//visibility:public"],
+    deps = [
+        ":dart-collision",
+        ":dart-common",
+        ":dart-constraint",
+        ":dart-dynamics",
+        ":dart-external",
+        ":dart-gui",
+        ":dart-integration",
+        ":dart-lcpsolver",
+        ":dart-math",
+        ":dart-optimizer",
+        ":dart-simulation",
+        ":dart-utils",
+    ],
     alwayslink = 1,
 )
 
@@ -519,18 +520,17 @@ cc_binary(
     includes = ["dart"],
     deps = [
         ":dart",
-        ":dart-math",
-        ":dart-common",
-        ":dart-optimizer",
-        ":dart-utils",
-        ":dart-integration",
-        ":dart-dynamics",
-        ":dart-simulation",
-        ":dart-lcpsolver",
-        ":dart-constraint",
         ":dart-collision",
+        ":dart-common",
+        ":dart-constraint",
+        ":dart-dynamics",
         ":dart-external",
         ":dart-gui",
+        ":dart-integration",
+        ":dart-lcpsolver",
+        ":dart-math",
+        ":dart-optimizer",
+        ":dart-simulation",
+        ":dart-utils",
     ],
 )
-
