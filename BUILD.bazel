@@ -124,12 +124,12 @@ cc_library(
         "dart/common/detail/*.hpp",
         "dart/config.hpp",
     ]),
+    linkopts = ["-ldl"],
     deps = [
         "@assimp",
         "@boost//:filesystem",
         "@boost//:regex",
         "@boost//:system",
-        "@dl",
         "@eigen3",
         "@tinyxml2",
     ],
