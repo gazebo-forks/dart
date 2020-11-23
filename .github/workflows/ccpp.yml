@@ -38,7 +38,7 @@ jobs:
       # Different from dart upstream since probably their dart image contains
       # development tools
       - name: Install Dependencies
-        run: .ci/install.sh
+        run: sudo bash -c '.ci/install.sh'
       - name: Pull dev container
         run: docker pull ${{ env.DART_DEV_IMAGE }}:${{ env.DOCKER_TAG }}
       - name: Build
