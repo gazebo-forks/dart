@@ -35,6 +35,10 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
+      # Different from dart upstream since probably their dart image contains
+      # development tools
+      - name: Install Dependencies
+        run: .ci/install.sh
       - name: Pull dev container
         run: docker pull ${{ env.DART_DEV_IMAGE }}:${{ env.DOCKER_TAG }}
       - name: Build
