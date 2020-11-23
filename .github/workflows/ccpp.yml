@@ -23,7 +23,7 @@ env:
       -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
       --env-file ./.ci/docker/env.list \
       $DART_DEV_IMAGE:$DOCKER_TAG \
-      /bin/sh -c "cd $GITHUB_WORKSPACE && ./ci/install.sh && ./.ci/script.sh"
+      /bin/sh -c "cd $GITHUB_WORKSPACE && ./.ci/install.sh && ./.ci/script.sh"
 
 jobs:
   xenial_i386_gcc_release:
