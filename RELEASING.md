@@ -1,33 +1,35 @@
 # Releasing DART from Open Robotics fork
 
-The idea is to use [Debian git-buildpackage tool](https://wiki.debian.org/PackagingWithGit)
-to maintain a fork of DART that imports changes from azeey DART and merge the
-Debian metadata.
+Ubuntu launchpad PPA system is being used to release the Open Robotics fork of
+DART. The debian metadata is being hosted the same development branch
+`azeey/friction_per_shape_more_params`. The procedure consists in two steps:
 
-Once that is ready, a [source
-package](https://wiki.debian.org/Packaging/SourcePackage) can be generated and
-uploaded to Ubuntu's PPA (Personal Package Archive) to generate the Debian
-binaries. Afterwards, they are imported into packages.osrfoundation.org
+  1. Produce a local tarball of the sources and upload the tarball to Ubuntu's
+     servers to built binaries
+  1. Imported binaries from Ubuntu PPA into packages.osrfoundation.org
 
 ## Prerequisites
 
 ### Credentials
 
-  * Upload to Ubuntu's PPA:
+  * For being able to upload to Open Robotics Ubuntu PPA:
      * Account in [Ubuntu One](https://login.ubuntu.com/)
      * Access to https://launchpad.net/~openrobotics
        * New members can apply after login in launchpad in that same page
 
-### System Configurations
+### Step 0: System Configurations
 
-  * gbp configurations for changelogs (optionally in .bashrc):
-    ```bash
+  * Enviroment variables to use as gbp configurations for changelogs
+    (optionally in .bashrc):
+    ```
     export DEBEMAIL="user@openrobotics.org
     export DEBFULLNAME="Your name"
     ```
 
-  * Software installation
-    ```bash
+  * Software installation: [debian git-buildpackage
+    tool](https://wiki.debian.org/PackagingWithGit) and dput (to upload
+    packages to PPA)
+    ```
     apt-get install -y git-buildpackage dput
     ```
 
@@ -43,14 +45,16 @@ and uploading the new source package to the PPA.
 
 A copy of [this fork](https://github.com/ignition-forks/dart) is required to be in the system.
 
-```bash
+```
 cd dart
 git checkout azeey/friction_per_shape_more_params
 ```
-`
+
 ### Update changelog, push changes
 
- 1. `gbp dch --ignore-branch --no-git-author -D <UBUNTU_DISTRO> --force-distribution --new-version=6.10.0~osrf6~$(date +%Y-%m-%d)~$(git rev-parse HEAD) --commit-msg 'New OSRF testing release' --commit`
+ 1. ```
+    gbp dch --ignore-branch --no-git-author -D <UBUNTU_DISTRO> --force-distribution --new-version=6.10.0~osrf6~$(date +%Y-%m-%d)~$(git rev-parse HEAD) --commit-msg 'New OSRF testing release' --commit
+    ```
     (change UBUNTU_DISTRO by the target distribution name, i.e: focal. Check changelog by running `git diff HEAD~1`)
  1. `git push origin azeey/friction_per_shape_more_params`
 
