@@ -56,20 +56,29 @@ git checkout azeey/friction_per_shape_more_params
     gbp dch --ignore-branch --no-git-author -D <UBUNTU_DISTRO> --force-distribution --new-version=6.10.0~osrf6~$(date +%Y-%m-%d)~$(git rev-parse HEAD) --commit-msg 'New OSRF testing release' --commit
     ```
     (change UBUNTU_DISTRO by the target distribution name, i.e: focal. Check changelog by running `git diff HEAD~1`)
- 1. `git push origin azeey/friction_per_shape_more_params`
 
 ### Releasing in Ubuntu PPA
 
 After updating the changelog, the directory is ready to generate the source package.
 
-#### Generate source package file
+#### Generate source package
 
- 1. `gbp buildpackage -S`
+ 1. Build source package files using gbp
+    ```
+    gbp buildpackage -S
+    ```
 
 #### Upload source package to Ubuntu's PPA
 
- 1. `dput ppa:openrobotics/dartsim-openrobotics-testing ../dart6_*_source.changes`
+ 1. Upload source package (source package files are located in the parent directory `..`)
+    ```
+    dput ppa:openrobotics/dartsim-openrobotics-testing ../dart6_*_source.changes`
+    ```
 
+ 1. If everything is correct, update the repository
+    ````
+    git push origin azeey/friction_per_shape_more_params
+    ```
 
 The last command will upload the source package to openrobotics PPA and will create the binaries
 for the selected Ubuntu distribution in all arches (supported architectures can be configured in PPA)
