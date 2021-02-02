@@ -1,8 +1,10 @@
 # Releasing DART from Open Robotics fork
 
-Ubuntu launchpad PPA system is being used to release the Open Robotics fork of
-DART. The debian metadata is being hosted the same development branch
-`azeey/friction_per_shape_more_params`. The procedure consists in two steps:
+Ubuntu Launchpad PPA (Personal Package Archive) system is being used to release
+the Open Robotics fork of DART. The debian metadata is being hosted the same
+development branch `azeey/friction_per_shape_more_params`.
+
+The procedure consists in two steps:
 
   1. Produce a local tarball of the sources and upload the tarball to Ubuntu's
      servers to built binaries
@@ -76,7 +78,7 @@ After updating the changelog, the directory is ready to generate the source pack
     ```
 
  1. If everything is correct, update the repository
-    ````
+    ```
     git push origin azeey/friction_per_shape_more_params
     ```
 
