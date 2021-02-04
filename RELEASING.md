@@ -2,7 +2,7 @@
 
 Ubuntu Launchpad PPA (Personal Package Archive) system is being used to release
 the Open Robotics fork of DART. The debian metadata is being hosted the same
-development branch `azeey/friction_per_shape_more_params`.
+development branch `release-6.10`.
 
 The procedure consists in two steps:
 
@@ -49,7 +49,7 @@ A copy of [this fork](https://github.com/ignition-forks/dart) is required to be 
 
 ```
 cd dart
-git checkout azeey/friction_per_shape_more_params
+git checkout release-6.10
 ```
 
 ### Update changelog, push changes
@@ -79,7 +79,7 @@ After updating the changelog, the directory is ready to generate the source pack
 
  1. If everything is correct, update the repository
     ```
-    git push origin azeey/friction_per_shape_more_params
+    git push origin release-6.10
     ```
 
 The last command will upload the source package to openrobotics PPA and will create the binaries
