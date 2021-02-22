@@ -143,25 +143,31 @@ public:
 
   DynamicsAspect(const PropertiesData& properties = PropertiesData());
 
-  DART_COMMON_SET_GET_ASPECT_PROPERTY(double, FrictionCoeff)
-  // void setFrictionCoeff(const double& value);
-  // const double& getFrictionCoeff() const;
+  /// Set both primary and secondary friction coefficients to the same value.
+  void setFrictionCoeff(const double& value);
+  /// Get average of primary and secondary friction coefficients.
+  double getFrictionCoeff() const;
+
+  // DART_COMMON_SET_GET_ASPECT_PROPERTY(double, PrimaryFrictionCoeff)
+  void setPrimaryFrictionCoeff(const double& value);
+  const double& getPrimaryFrictionCoeff() const;
+
+  DART_COMMON_SET_GET_ASPECT_PROPERTY(double, SecondaryFrictionCoeff)
+  // void setSecondaryFrictionCoeff(const double& value);
+  // const double& getSecondaryFrictionCoeff() const;
   DART_COMMON_SET_GET_ASPECT_PROPERTY(double, RestitutionCoeff)
   // void setRestitutionCoeff(const double& value);
   // const double& getRestitutionCoeff() const;
-  DART_COMMON_SET_GET_ASPECT_PROPERTY( double, SecondaryFrictionCoeff )
-  // void setSecondaryFrictionCoeff(const double& value);
-  // const double& getSecondaryFrictionCoeff() const;
 
   /// Slip compliance parameters act as constraint force mixing (cfm)
   /// for the friction constraints.
   /// They start with a default value of -1.0 and will be ignored
-  /// in favor of the global default cfm value unless explicitly
+  /// in favor of the global default value unless explicitly
   /// set to a positive value.
-  DART_COMMON_SET_GET_ASPECT_PROPERTY( double, SlipCompliance )
-  // void setSlipCompliance(const double& value);
-  // const double& getSlipCompliance() const;
-  DART_COMMON_SET_GET_ASPECT_PROPERTY( double, SecondarySlipCompliance )
+  DART_COMMON_SET_GET_ASPECT_PROPERTY(double, PrimarySlipCompliance)
+  // void sePrimarytSlipCompliance(const double& value);
+  // const double& getPrimarySlipCompliance() const;
+  DART_COMMON_SET_GET_ASPECT_PROPERTY(double, SecondarySlipCompliance)
   // void setSecondarySlipCompliance(const double& value);
   // const double& getSecondarySlipCompliance() const;
 
@@ -173,7 +179,7 @@ public:
   /// Get the frame for the first friction direction vector.
   const Frame* getFirstFrictionDirectionFrame() const;
 
-  DART_COMMON_SET_GET_ASPECT_PROPERTY( Eigen::Vector3d, FirstFrictionDirection )
+  DART_COMMON_SET_GET_ASPECT_PROPERTY(Eigen::Vector3d, FirstFrictionDirection)
   // void setFirstFrictionDirection(const Eigen::Vector3d& value);
   // const Eigen::Vector3d& getFirstFrictionDirection() const;
 };

@@ -1467,18 +1467,6 @@ void GenericJoint<ConfigSpaceT>::setRestPosition(size_t index, double q0)
     return;
   }
 
-  if (Base::mAspectProperties.mPositionLowerLimits[index] > q0
-      || Base::mAspectProperties.mPositionUpperLimits[index] < q0)
-  {
-    dtwarn << "[GenericJoint::setRestPosition] Value of _q0 [" << q0
-           << "], is out of the limit range ["
-           << Base::mAspectProperties.mPositionLowerLimits[index] << ", "
-           << Base::mAspectProperties.mPositionUpperLimits[index]
-           << "] for index [" << index << "] of Joint [" << this->getName()
-           << "].\n";
-    return;
-  }
-
   GenericJoint_SET_IF_DIFFERENT(mRestPositions[index], q0);
 }
 
@@ -2336,22 +2324,25 @@ void GenericJoint<ConfigSpaceT>::updateForceID(
   this->mAspectState.mForces
       = getRelativeJacobianStatic().transpose() * bodyForce;
 
-  // Damping force
+  // Implicit damping force:
+  //   tau_d = -Kd * dq - Kd * h * ddq
   if (withDampingForces)
   {
     const typename ConfigSpaceT::Vector dampingForces
         = -Base::mAspectProperties.mDampingCoefficients.cwiseProduct(
-            getVelocitiesStatic());
+            getVelocitiesStatic() + getAccelerationsStatic() * timeStep);
     this->mAspectState.mForces -= dampingForces;
   }
 
-  // Spring force
+  // Implicit spring force:
+  //   tau_s = -Kp * (q - q0) - Kp * h * dq - Kp * h^2 * ddq
   if (withSpringForces)
   {
     const typename ConfigSpaceT::Vector springForces
         = -Base::mAspectProperties.mSpringStiffnesses.cwiseProduct(
             getPositionsStatic() - Base::mAspectProperties.mRestPositions
-            + getVelocitiesStatic() * timeStep);
+            + getVelocitiesStatic() * timeStep
+            + getAccelerationsStatic() * timeStep * timeStep);
     this->mAspectState.mForces -= springForces;
   }
 }

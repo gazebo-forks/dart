@@ -9,8 +9,11 @@ execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
   OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+if(NOT IS_ABSOLUTE PYTHON_SITE_PACKAGES)
+  set(PYTHON_SITE_PACKAGES "${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_PACKAGES}")
+endif()
 if(NOT PythonInterp_FOUND)
-  message(STATUS "DART_BUILD_DARTPY is ON, but failed to find PythonInterp. "
+  message(WARNING "DART_BUILD_DARTPY is ON, but failed to find PythonInterp. "
     "Disabling dartpy."
   )
   return()
@@ -18,7 +21,7 @@ endif()
 
 find_package(PythonLibs ${DARTPY_PYTHON_VERSION} QUIET)
 if(NOT PythonLibs_FOUND)
-  message(STATUS "DART_BUILD_DARTPY is ON, but failed to find PythonLibs. "
+  message(WARNING "DART_BUILD_DARTPY is ON, but failed to find PythonLibs. "
     "Disabling dartpy."
   )
   return()
@@ -29,7 +32,7 @@ endif()
 set(PYBIND11_PYTHON_VERSION ${DARTPY_PYTHON_VERSION})
 find_package(pybind11 2.2.0 QUIET)
 if(NOT pybind11_FOUND)
-  message(STATUS "DART_BUILD_DARTPY is ON, but failed to find pybind11 >= "
+  message(WARNING "DART_BUILD_DARTPY is ON, but failed to find pybind11 >= "
     "2.2.0. Disabling dartpy."
   )
   return()
@@ -38,17 +41,20 @@ endif()
 file(GLOB_RECURSE dartpy_headers "*.h" "*.hpp")
 file(GLOB_RECURSE dartpy_sources "*.cpp")
 
+# Python binding module name
+set(pybind_module dartpy)
+
 # Build a Python extension module:
 # pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
 #                     [NO_EXTRAS] [SYSTEM] [THIN_LTO] source1 [source2 ...])
 #
-pybind11_add_module(dartpy
+pybind11_add_module(${pybind_module}
   MODULE
   ${dartpy_headers}
   ${dartpy_sources}
 )
 
-target_include_directories(dartpy
+target_include_directories(${pybind_module}
   SYSTEM PUBLIC
     ${PYTHON_INCLUDE_DIRS}
     ${pybind11_INCLUDE_DIRS}
@@ -56,7 +62,7 @@ target_include_directories(dartpy
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(dartpy
+target_link_libraries(${pybind_module}
   PUBLIC
     dart
     dart-utils
@@ -66,24 +72,35 @@ target_link_libraries(dartpy
     ${PYTHON_LIBRARIES}
 )
 if(TARGET dart-optimizer-nlopt)
-  target_link_libraries(dartpy PUBLIC dart-optimizer-nlopt)
+  target_link_libraries(${pybind_module} PUBLIC dart-optimizer-nlopt)
 endif()
 if(TARGET dart-collision-bullet)
-  target_link_libraries(dartpy PUBLIC dart-collision-bullet)
+  target_link_libraries(${pybind_module} PUBLIC dart-collision-bullet)
 endif()
 if(TARGET dart-collision-ode)
-  target_link_libraries(dartpy PUBLIC dart-collision-ode)
+  target_link_libraries(${pybind_module} PUBLIC dart-collision-ode)
 endif()
 
-set_target_properties(dartpy
-  PROPERTIES
-    PREFIX ""
-    SUFFIX ".so"  # python uses '.so' extension even on macOS
-    DEBUG_POSTFIX ""
-)
+# Remove debug postfix for dartpy
+set_target_properties(${pybind_module} PROPERTIES DEBUG_POSTFIX "")
 
-install(TARGETS dartpy
-  LIBRARY DESTINATION "${PYTHON_SITE_PACKAGES}"
+# Get the path to the bind module
+set(PYBIND_MODULE $<TARGET_FILE:${pybind_module}>)
+
+# Custom target to install (copy) the bind module. This target may require
+# `sudo` if the destination is a system directory.
+set(install_comment "Installing ${pybind_module}...")
+if(BUILD_SHARED_LIBS)
+  string(CONCAT install_comment
+    "${install_comment}\n"
+    "NOTE: ${pybind_module} is built against the DART's shared libraries. "
+    "Install the shared libraries to be able to import ${pybind_module}."
+  )
+endif()
+add_custom_target(install-${pybind_module}
+  COMMENT "${install_comment}"
+  COMMAND ${CMAKE_COMMAND} -E copy ${PYBIND_MODULE} ${PYTHON_SITE_PACKAGES}
+  DEPENDS ${install_dartpy_deps}
 )
 
 list(REMOVE_ITEM dartpy_headers

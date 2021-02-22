@@ -321,6 +321,19 @@ SoftContactConstraint::~SoftContactConstraint()
 }
 
 //==============================================================================
+const std::string& SoftContactConstraint::getType() const
+{
+  return getStaticType();
+}
+
+//==============================================================================
+const std::string& SoftContactConstraint::getStaticType()
+{
+  static const std::string name = "SoftContactConstraint";
+  return name;
+}
+
+//==============================================================================
 void SoftContactConstraint::setErrorAllowance(double _allowance)
 {
   // Clamp error reduction parameter if it is out of the range
@@ -398,13 +411,6 @@ void SoftContactConstraint::setConstraintForceMixing(double _cfm)
            << "] is lower than 1e-9. "
            << "It is set to 1e-9." << std::endl;
     mConstraintForceMixing = 1e-9;
-  }
-  if (_cfm > 1.0)
-  {
-    dtwarn << "Constraint force mixing parameter[" << _cfm
-           << "] is greater than 1.0. "
-           << "It is set to 1.0." << std::endl;
-    mConstraintForceMixing = 1.0;
   }
 
   mConstraintForceMixing = _cfm;

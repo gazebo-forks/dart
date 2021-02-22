@@ -72,7 +72,7 @@ dynamics::SkeletonPtr createFloor()
       dynamics::CollisionAspect,
       dynamics::DynamicsAspect>(box);
   shapeNode->getVisualAspect()->setColor(dart::Color::LightGray());
-  shapeNode->getDynamicsAspect()->setSlipCompliance(0);
+  shapeNode->getDynamicsAspect()->setPrimarySlipCompliance(0);
   shapeNode->getDynamicsAspect()->setSecondarySlipCompliance(0);
 
   // Put the body into position
@@ -117,9 +117,9 @@ TEST(ForceDependentSlip, BoxSlipVelocity)
 
   EXPECT_DOUBLE_EQ(body1Dynamics->getFrictionCoeff(), 1.0);
 
-  body1Dynamics->setSlipCompliance(slip);
+  body1Dynamics->setPrimarySlipCompliance(slip);
   body1Dynamics->setFirstFrictionDirection(Vector3d::UnitX());
-  EXPECT_DOUBLE_EQ(body1Dynamics->getSlipCompliance(), slip);
+  EXPECT_DOUBLE_EQ(body1Dynamics->getPrimarySlipCompliance(), slip);
   EXPECT_EQ(body1Dynamics->getFirstFrictionDirection(), Vector3d::UnitX());
 
   auto body2 = skeleton2->getRootBodyNode();
@@ -157,10 +157,10 @@ TEST(ForceDependentSlip, BoxSlipVelocity)
 
   const double slip2 = 0.03;
   // Test slip compliance in the secondary friction direction
-  body1Dynamics->setSlipCompliance(0);
+  body1Dynamics->setPrimarySlipCompliance(0);
   body1Dynamics->setSecondarySlipCompliance(slip2);
 
-  EXPECT_DOUBLE_EQ(body1Dynamics->getSlipCompliance(), 0.0);
+  EXPECT_DOUBLE_EQ(body1Dynamics->getPrimarySlipCompliance(), 0.0);
   EXPECT_DOUBLE_EQ(body1Dynamics->getSecondarySlipCompliance(), slip2);
 
   // Step without external force so the body stop moving
@@ -218,9 +218,9 @@ TEST(ForceDependentSlip, CylinderSlipVelocity)
 
   EXPECT_DOUBLE_EQ(body1Dynamics->getFrictionCoeff(), 1.0);
 
-  body1Dynamics->setSlipCompliance(slip);
+  body1Dynamics->setPrimarySlipCompliance(slip);
   body1Dynamics->setFirstFrictionDirection(Vector3d::UnitX());
-  EXPECT_DOUBLE_EQ(body1Dynamics->getSlipCompliance(), slip);
+  EXPECT_DOUBLE_EQ(body1Dynamics->getPrimarySlipCompliance(), slip);
   EXPECT_EQ(body1Dynamics->getFirstFrictionDirection(), Vector3d::UnitX());
 
   auto body2 = skeleton2->getRootBodyNode();
@@ -247,10 +247,12 @@ TEST(ForceDependentSlip, CylinderSlipVelocity)
   world->addSkeleton(skeleton1);
   world->addSkeleton(skeleton2);
 
+  const double dt = 0.001;
   const auto numSteps = 2000;
   const double extForceX = 1.0;
   const double extTorqueY = 2.0;
 
+  auto lastVel = body2->getLinearVelocity();
   for (auto i = 0u; i < numSteps; ++i)
   {
     body1->addExtForce({extForceX, 0, 0});
@@ -260,8 +262,8 @@ TEST(ForceDependentSlip, CylinderSlipVelocity)
     if (i > 1000)
     {
       // The velocity of body1 should stabilize at F_ext * slip
-      EXPECT_NEAR(extForceX * slip, body1->getLinearVelocity().x(), 3e-5);
-      EXPECT_NEAR(0.0, body1->getLinearVelocity().y(), 3e-5);
+      EXPECT_NEAR(extForceX * slip, body1->getLinearVelocity().x(), 1e-4);
+      EXPECT_NEAR(0.0, body1->getLinearVelocity().y(), 1e-4);
 
       // body2 rolls with sliding. The difference between the linear velocity
       // and the expected non-sliding velocity (angular velocity * radius) is
@@ -273,11 +275,11 @@ TEST(ForceDependentSlip, CylinderSlipVelocity)
       // There appears to be a bug in DART in obtaining the linear acceleration
       // of the body using (BodyNode::getLinearAcceleration), so we compute it
       // here via finite difference.
-      EXPECT_NEAR(
-          mass * body2->getLinearAcceleration().x() * slip,
-          spinVel - linVel,
-          3e-5);
-      EXPECT_NEAR(0.0, body2->getLinearVelocity().y(), 3e-5);
+      auto accel = (body2->getLinearVelocity() - lastVel) / dt;
+      EXPECT_NEAR(mass * accel.x() * slip, spinVel - linVel, 2e-4);
+      EXPECT_NEAR(0.0, body2->getLinearVelocity().y(), 1e-4);
     }
+
+    lastVel = body2->getLinearVelocity();
   }
 }

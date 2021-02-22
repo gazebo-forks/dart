@@ -136,14 +136,24 @@ macro(dart_check_optional_package variable component dependency)
   else()
     set(HAVE_${variable} FALSE CACHE BOOL "Check if ${variable} found." FORCE)
     if(ARGV3) # version
-      message(STATUS "Looking for ${dependency} - NOT found, to use"
-                     " ${component}, please install ${dependency} (>= ${ARGV3})")
+      message(WARNING "Looking for ${dependency} - NOT found, to use"
+                      " ${component}, please install ${dependency} (>= ${ARGV3})")
     else()
-      message(STATUS "Looking for ${dependency} - NOT found, to use"
-                     " ${component}, please install ${dependency}")
+      message(WARNING "Looking for ${dependency} - NOT found, to use"
+                      " ${component}, please install ${dependency}")
     endif()
     return()
   endif()
+endmacro()
+
+#===============================================================================
+macro(dart_check_dependent_target target)
+  foreach(dependent_target ${ARGN})
+    if (NOT TARGET ${dependent_target})
+      message(WARNING "${target} is disabled because dependent target ${dependent_target} is not being built.")
+      return()
+    endif()
+  endforeach()
 endmacro()
 
 #===============================================================================

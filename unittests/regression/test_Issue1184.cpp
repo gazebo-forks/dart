@@ -45,7 +45,6 @@
 //==============================================================================
 TEST(Issue1184, Accuracy)
 {
-
   struct ShapeInfo
   {
     dart::dynamics::ShapePtr shape;

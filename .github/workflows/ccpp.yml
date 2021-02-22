@@ -14,30 +14,105 @@ on:
     - cron: "0 2 * * 0-6"
 
 env:
-  CTEST_OUTPUT_ON_FAILURE: 1
-  DART_DEV_IMAGE: osrf/ubuntu_i386
-  # Different from dart upstream since probably their dart image contains
-  # development tools. Here we run install.sh
+  # Hosted on: https://hub.docker.com/repository/docker/dartsim/dart-dev
+  DART_DEV_IMAGE: dartsim/dart-dev
   UBUNTU_BUILD_CMD: |
     docker run \
       -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
       --env-file ./.ci/docker/env.list \
       $DART_DEV_IMAGE:$DOCKER_TAG \
-      /bin/sh -c "cd $GITHUB_WORKSPACE && ./.ci/install.sh && ./.ci/script.sh"
+      /bin/sh -c "cd $GITHUB_WORKSPACE && ./.ci/build.sh"
 
 jobs:
-  xenial_i386_gcc_release:
-    name: Ubuntu 16.04 [i386|GCC|Release]
+  # Linux distros on multiple architectures
+  bionic_gcc_release:
+    name: Ubuntu [GCC|Release]
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os:
+          [
+            ubuntu-xenial,
+            ubuntu-focal,
+            ubuntu-groovy,
+            ubuntu-hirsute,
+          ]
+        sha256: [""]
+        include:
+          # amd64
+          - os: ubuntu-bionic
+            sha256: "@sha256:bbcc3086bb13c3bb59214b67ceb520f8fde89a92745611e3b62992575fd3bc9e"
+          # arm64
+          - os: ubuntu-bionic
+            sha256: "@sha256:b798f02a2e16bb3b523dd087bb9e6e35598263af18bd0e61a8781c80352bf061"
+          # ppc64le
+          - os: ubuntu-bionic
+            sha256: "@sha256:f9e60cad2904c7418a48bde5803a6866d0fa5893c4204689d978541572905b87"
     env:
-      DOCKER_TAG: xenial
+      DOCKER_TAG: ${{ matrix.os }}-v6.10${{ matrix.sha256 }}
       COMPILER: gcc
       BUILD_TYPE: Release
       BUILD_DARTPY: OFF
     steps:
+      # https://github.com/marketplace/actions/docker-setup-qemu
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
       - name: Check out the repo
         uses: actions/checkout@v2
       - name: Pull dev container
-        run: docker pull ${{ env.DART_DEV_IMAGE }}:${{ env.DOCKER_TAG }}
+        run: docker pull $DART_DEV_IMAGE:$DOCKER_TAG
       - name: Build
         run: ${{ env.UBUNTU_BUILD_CMD }}
+
+  # macOS 10.15 on amd64
+  catalina_clang_release:
+    name: macOS 10.15 [Clang|Release]
+    runs-on: macos-10.15
+    env:
+      COMPILER: clang
+      BUILD_TYPE: Release
+      BUILD_DARTPY: ON
+    steps:
+      - uses: actions/checkout@v2
+      - name: Fix issue with Python 2to3 symlink
+        # Explicitly overwrite symlinks created by Python2 such as /usr/local/bin/2to3 since they conflict with symlinks from Python3
+        # https://github.com/actions/virtual-environments/issues/2322
+        run: |
+          rm -rf /usr/local/bin/2to3
+      - name: Install Dependencies
+        run: .ci/install.sh
+      - name: Build
+        run: sudo -E .ci/build.sh
+
+  # Windows with MSVC and MSVC + ClangCl
+  windows_2019_msvc:
+    name: Windows [MSVC|Release]
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        toolset: ["", "-T ClangCl"]
+    env:
+      BUILD_TYPE: Release
+      VCPKG_ROOT: "C:/dartsim/vcpkg"
+      VCPKG_BUILD_TAG: v0.2.0-70f192e
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        shell: cmd
+        run: |
+          mkdir -p C:\dartsim
+          choco install -y wget
+          wget -q https://github.com/dartsim/vcpkg-build/releases/download/%VCPKG_BUILD_TAG%/vcpkg-dartsim-dependencies.zip
+          unzip -qq vcpkg-dartsim-dependencies.zip -d C:\dartsim
+      - name: Build
+        shell: cmd
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 16 2019" -A x64 -Wno-dev ${{ matrix.toolset }} ^
+            -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
+            -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
+            -DDART_MSVC_DEFAULT_OPTIONS=ON ^
+            -DDART_VERBOSE=ON
+          cmake --build . --target ALL_BUILD --parallel
+          ctest --output-on-fauilure
