@@ -103,6 +103,7 @@ cc_library(
         "dart/math/*.hpp",
         "dart/math/detail/*.hpp",
     ]),
+    includes = ["."],
     deps = [
         ":dart-common",
     ],
@@ -124,6 +125,7 @@ cc_library(
         "dart/common/detail/*.hpp",
         "dart/config.hpp",
     ]),
+    includes = ["."],
     linkopts = ["-ldl"],
     deps = [
         "@assimp",
@@ -271,6 +273,7 @@ cc_library(
         "dart/external/lodepng/*.h",
         "dart/external/odelcpsolver/*.h",
     ]),
+    includes = ["."],
 )
 
 cc_library(
@@ -329,6 +332,7 @@ cc_library(
     hdrs = glob([
         "dart/integration/*.hpp",
     ]),
+    includes = ["."],
     deps = [
         "@eigen3",
     ],
