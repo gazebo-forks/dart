@@ -3,7 +3,7 @@ add_subdirectory(external)
 # Enable multi-threaded compilation.
 # We do this here and not in the root folder since the examples and the
 # tutorials do not have enough source files to benefit from this.
-if(MSVC)
+if(MSVC AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 
@@ -94,9 +94,7 @@ if(DART_VERBOSE)
   message(STATUS ${DART_CONFIG_HPP_OUT})
 endif()
 configure_file(${DART_CONFIG_HPP_IN} ${DART_CONFIG_HPP_OUT} @ONLY)
-if(NOT DART_BUILD_DARTPY)
-  install(FILES ${DART_CONFIG_HPP_OUT} DESTINATION include/dart)
-endif()
+install(FILES ${DART_CONFIG_HPP_OUT} DESTINATION include/dart)
 
 # Print building component
 get_property(components GLOBAL PROPERTY ${PROJECT_NAME}_COMPONENTS)
@@ -141,9 +139,6 @@ target_link_libraries(dart
 if (TARGET octomap)
   target_link_libraries(dart PUBLIC octomap)
 endif()
-if(NOT MSVC)
-  target_link_libraries(dart PUBLIC Boost::regex)
-endif()
 if(CMAKE_VERSION VERSION_LESS 3.8.2)
   target_compile_options(dart PUBLIC -std=c++14)
 else()
@@ -183,8 +178,6 @@ if(MSVC)
   )
 endif()
 
-if(NOT DART_BUILD_DARTPY)
-  install(FILES dart.hpp DESTINATION include/dart/ COMPONENT headers)
-endif()
+install(FILES dart.hpp DESTINATION include/dart/ COMPONENT headers)
 
 dart_format_add(${dart_core_headers} ${dart_core_sources})

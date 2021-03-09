@@ -322,40 +322,15 @@ public:
   /// \{ \name Structural Properties
   //----------------------------------------------------------------------------
 
-#ifdef _WIN32
-  template <typename JointType>
-  static typename JointType::Properties createJointProperties()
-  {
-    return typename JointType::Properties();
-  }
-
-  template <typename NodeType>
-  static typename NodeType::Properties createBodyNodeProperties()
-  {
-    return typename NodeType::Properties();
-  }
-#endif
-  // TODO: Workaround for MSVC bug on template function specialization with
-  // default argument. Please see #487 for detail
-
   /// Create a Joint and child BodyNode pair of the given types. When creating
   /// a root (parentless) BodyNode, pass in nullptr for the _parent argument.
   template <class JointType, class NodeType = BodyNode>
   std::pair<JointType*, NodeType*> createJointAndBodyNodePair(
       BodyNode* _parent = nullptr,
-#ifdef _WIN32
-      const typename JointType::Properties& _jointProperties
-      = Skeleton::createJointProperties<JointType>(),
-      const typename NodeType::Properties& _bodyProperties
-      = Skeleton::createBodyNodeProperties<NodeType>());
-#else
       const typename JointType::Properties& _jointProperties
       = typename JointType::Properties(),
       const typename NodeType::Properties& _bodyProperties
       = typename NodeType::Properties());
-#endif
-  // TODO: Workaround for MSVC bug on template function specialization with
-  // default argument. Please see #487 for detail
 
   // Documentation inherited
   std::size_t getNumBodyNodes() const override;
@@ -671,7 +646,32 @@ public:
   /// Compute forward dynamics
   void computeForwardDynamics();
 
-  /// Compute inverse dynamics
+  /// Computes inverse dynamics.
+  ///
+  /// The inverse dynamics is computed according to the following equations of
+  /// motion:
+  ///
+  /// \f$ M(q) \ddot{q} + C(q, \dot{q}) + N(q) - \tau_{\text{ext}} - \tau_d -
+  /// \tau_s = \tau \f$
+  ///
+  /// where \f$ \tau_{\text{ext}} \f$, \f$ \tau_d \f$, and \f$ \tau_s \f$ are
+  /// external forces, joint damping forces, and joint spring forces projected
+  /// on to the joint space, respectively. This function provides three flags
+  /// whether to take into account each forces in computing the joint forces,
+  /// \f$ \tau_d \f$. Not accounting each forces implies that the forces is
+  /// added to \f$ \tau \f$ in order to keep the equation equivalent. If there
+  /// forces are zero (by setting external forces, damping coeff, spring
+  /// stiffness zeros), these flags have no effect.
+  ///
+  /// Once this function is called, the joint forces, \f$ \tau \f$, can be
+  /// obtained by calling getForces().
+  ///
+  /// \param[in] _withExternalForces Set \c true to take external forces into
+  /// account.
+  /// \param[in] _withDampingForces  Set \c true to take damping forces into
+  /// account.
+  /// \param[in] _withSpringForces   Set \c true to take spring forces into
+  /// account.
   void computeInverseDynamics(
       bool _withExternalForces = false,
       bool _withDampingForces = false,
@@ -1166,6 +1166,8 @@ protected:
 
   /// Add a SoftBodyNode to the SoftBodyNode NameManager
   void addEntryToSoftBodyNodeNameMgr(SoftBodyNode* _newNode);
+
+  void updateNameManagerNames();
 
 protected:
   /// The resource-managing pointer to this Skeleton

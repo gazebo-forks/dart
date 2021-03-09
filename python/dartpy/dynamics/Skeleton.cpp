@@ -388,6 +388,12 @@ void Skeleton(py::module& m)
           py::return_value_policy::reference_internal)
       .def(
           "getBodyNodes",
+          +[](dart::dynamics::Skeleton* self)
+              -> const std::vector<dart::dynamics::BodyNode*>& {
+            return self->getBodyNodes();
+          })
+      .def(
+          "getBodyNodes",
           +[](dart::dynamics::Skeleton* self, const std::string& name)
               -> std::vector<dart::dynamics::BodyNode*> {
             return self->getBodyNodes(name);
@@ -504,11 +510,19 @@ void Skeleton(py::module& m)
       .def(
           "getDof",
           +[](dart::dynamics::Skeleton* self,
+              std::size_t index) -> dart::dynamics::DegreeOfFreedom* {
+            return self->getDof(index);
+          },
+          ::py::return_value_policy::reference_internal,
+          ::py::arg("index"))
+      .def(
+          "getDof",
+          +[](dart::dynamics::Skeleton* self,
               const std::string& name) -> dart::dynamics::DegreeOfFreedom* {
             return self->getDof(name);
           },
           ::py::return_value_policy::reference_internal,
-          ::py::arg("index"))
+          ::py::arg("name"))
       .def(
           "getDofs",
           +[](const dart::dynamics::Skeleton* self)
@@ -566,6 +580,22 @@ void Skeleton(py::module& m)
           +[](const dart::dynamics::Skeleton* self, std::size_t treeIndex)
               -> std::size_t { return self->getNumShapeNodes(treeIndex); },
           ::py::arg("treeIndex"))
+      .def(
+          "getShapeNode",
+          +[](dart::dynamics::Skeleton* self,
+              std::size_t index) -> dart::dynamics::ShapeNode* {
+            return self->getShapeNode(index);
+          },
+          ::py::return_value_policy::reference_internal,
+          ::py::arg("index"))
+      .def(
+          "getShapeNode",
+          +[](dart::dynamics::Skeleton* self,
+              const std::string& name) -> dart::dynamics::ShapeNode* {
+            return self->getShapeNode(name);
+          },
+          ::py::return_value_policy::reference_internal,
+          ::py::arg("name"))
       .def(
           "getNumEndEffectors",
           +[](const dart::dynamics::Skeleton* self) -> std::size_t {
@@ -1060,12 +1090,12 @@ void Skeleton(py::module& m)
           "getGravityForces",
           +[](dart::dynamics::Skeleton* self,
               std::size_t treeIndex) -> const Eigen::VectorXd& {
-            return self->getCoriolisForces(treeIndex);
+            return self->getGravityForces(treeIndex);
           })
       .def(
           "getGravityForces",
           +[](dart::dynamics::Skeleton* self) -> const Eigen::VectorXd& {
-            return self->getCoriolisForces();
+            return self->getGravityForces();
           })
       .def(
           "getCoriolisAndGravityForces",
@@ -1082,12 +1112,12 @@ void Skeleton(py::module& m)
           "getExternalForces",
           +[](dart::dynamics::Skeleton* self,
               std::size_t treeIndex) -> const Eigen::VectorXd& {
-            return self->getCoriolisAndGravityForces(treeIndex);
+            return self->getExternalForces(treeIndex);
           })
       .def(
           "getExternalForces",
           +[](dart::dynamics::Skeleton* self) -> const Eigen::VectorXd& {
-            return self->getCoriolisAndGravityForces();
+            return self->getExternalForces();
           })
       .def(
           "getConstraintForces",

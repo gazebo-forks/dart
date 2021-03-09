@@ -65,11 +65,8 @@ double ContactConstraint::mConstraintForceMixing = DART_CFM;
 
 constexpr double DART_DEFAULT_FRICTION_COEFF = 1.0;
 constexpr double DART_DEFAULT_RESTITUTION_COEFF = 0.0;
-// slip compliance is combined through addition,
-// so set to half the global default value
 constexpr double DART_DEFAULT_SLIP_COMPLIANCE = 0.0;
-const Eigen::Vector3d DART_DEFAULT_FRICTION_DIR =
-    Eigen::Vector3d::UnitZ();
+const Eigen::Vector3d DART_DEFAULT_FRICTION_DIR = Eigen::Vector3d::UnitZ();
 
 //==============================================================================
 ContactConstraint::ContactConstraint(
@@ -88,7 +85,7 @@ ContactConstraint::ContactConstraint(
                    .get()),
     mContact(contact),
     mFirstFrictionalDirection(DART_DEFAULT_FRICTION_DIR),
-    mSlipCompliance(DART_DEFAULT_SLIP_COMPLIANCE),
+    mPrimarySlipCompliance(DART_DEFAULT_SLIP_COMPLIANCE),
     mSecondarySlipCompliance(DART_DEFAULT_SLIP_COMPLIANCE),
     mIsFrictionOn(true),
     mAppliedImpulseIndex(dynamics::INVALID_INDEX),
@@ -122,42 +119,49 @@ ContactConstraint::ContactConstraint(
   // TODO(JS): Assume the frictional coefficient can be changed during
   //           simulation steps.
   // Update mFrictionCoeff
-  const double frictionCoeffA = computeFrictionCoefficient(shapeNodeA);
-  const double frictionCoeffB = computeFrictionCoefficient(shapeNodeB);
-  const double secondaryFrictionCoeffA =
-                       computeSecondaryFrictionCoefficient(shapeNodeA);
-  const double secondaryFrictionCoeffB =
-                       computeSecondaryFrictionCoefficient(shapeNodeB);
+  const double primaryFrictionCoeffA
+      = computePrimaryFrictionCoefficient(shapeNodeA);
+  const double primaryFrictionCoeffB
+      = computePrimaryFrictionCoefficient(shapeNodeB);
+  const double secondaryFrictionCoeffA
+      = computeSecondaryFrictionCoefficient(shapeNodeA);
+  const double secondaryFrictionCoeffB
+      = computeSecondaryFrictionCoefficient(shapeNodeB);
 
   // TODO(JS): Consider providing various ways of the combined friction or
   // allowing to override this method by a custom method
-  mFrictionCoeff = std::min(frictionCoeffA, frictionCoeffB);
-  mSecondaryFrictionCoeff =
-      std::min(secondaryFrictionCoeffA, secondaryFrictionCoeffB);
-  if (mFrictionCoeff > DART_FRICTION_COEFF_THRESHOLD ||
-      mSecondaryFrictionCoeff > DART_FRICTION_COEFF_THRESHOLD)
+  mPrimaryFrictionCoeff
+      = std::min(primaryFrictionCoeffA, primaryFrictionCoeffB);
+  mSecondaryFrictionCoeff
+      = std::min(secondaryFrictionCoeffA, secondaryFrictionCoeffB);
+  if (mPrimaryFrictionCoeff > DART_FRICTION_COEFF_THRESHOLD
+      || mSecondaryFrictionCoeff > DART_FRICTION_COEFF_THRESHOLD)
   {
     mIsFrictionOn = true;
 
     // Compute slip compliance
-    const double slipComplianceA = computeSlipCompliance(shapeNodeA);
-    const double slipComplianceB = computeSlipCompliance(shapeNodeB);
-    const double secondarySlipComplianceA =
-                         computeSecondarySlipCompliance(shapeNodeA);
-    const double secondarySlipComplianceB =
-                         computeSecondarySlipCompliance(shapeNodeB);
+    const double primarySlipComplianceA
+        = computePrimarySlipCompliance(shapeNodeA);
+    const double primarySlipComplianceB
+        = computePrimarySlipCompliance(shapeNodeB);
+    const double secondarySlipComplianceA
+        = computeSecondarySlipCompliance(shapeNodeA);
+    const double secondarySlipComplianceB
+        = computeSecondarySlipCompliance(shapeNodeB);
     // Combine slip compliances through addition
-    mSlipCompliance = slipComplianceA + slipComplianceB;
-    mSecondarySlipCompliance =
-        secondarySlipComplianceA + secondarySlipComplianceB;
+    mPrimarySlipCompliance = primarySlipComplianceA + primarySlipComplianceB;
+    mSecondarySlipCompliance
+        = secondarySlipComplianceA + secondarySlipComplianceB;
 
     // Check shapeNodes for valid friction direction unit vectors
     auto frictionDirA = computeWorldFirstFrictionDir(shapeNodeA);
     auto frictionDirB = computeWorldFirstFrictionDir(shapeNodeB);
 
-    // resulting friction direction unit vector
-    bool nonzeroDirA = frictionDirA.squaredNorm() >= DART_CONTACT_CONSTRAINT_EPSILON_SQUARED;
-    bool nonzeroDirB = frictionDirB.squaredNorm() >= DART_CONTACT_CONSTRAINT_EPSILON_SQUARED;
+    // check if the friction direction unit vectors have been set
+    bool nonzeroDirA
+        = frictionDirA.squaredNorm() >= DART_CONTACT_CONSTRAINT_EPSILON_SQUARED;
+    bool nonzeroDirB
+        = frictionDirB.squaredNorm() >= DART_CONTACT_CONSTRAINT_EPSILON_SQUARED;
 
     // only consider custom friction direction if one has nonzero length
     if (nonzeroDirA || nonzeroDirB)
@@ -166,7 +170,7 @@ ContactConstraint::ContactConstraint(
       // since it's friction properties will dominate
       if (nonzeroDirA && nonzeroDirB)
       {
-        if (frictionCoeffA <= frictionCoeffB)
+        if (primaryFrictionCoeffA <= primaryFrictionCoeffB)
         {
           mFirstFrictionalDirection = frictionDirA.normalized();
         }
@@ -295,6 +299,19 @@ ContactConstraint::ContactConstraint(
     mSpatialNormalA.col(0).tail<3>().noalias() = bodyDirectionA;
     mSpatialNormalB.col(0).tail<3>().noalias() = bodyDirectionB;
   }
+}
+
+//==============================================================================
+const std::string& ContactConstraint::getType() const
+{
+  return getStaticType();
+}
+
+//==============================================================================
+const std::string& ContactConstraint::getStaticType()
+{
+  static const std::string name = "ContactConstraint";
+  return name;
 }
 
 //==============================================================================
@@ -429,8 +446,8 @@ void ContactConstraint::getInformation(ConstraintInfo* info)
     assert(info->findex[0] == -1);
 
     // Upper and lower bounds of tangential direction-1 impulsive force
-    info->lo[1] = -mFrictionCoeff;
-    info->hi[1] = mFrictionCoeff;
+    info->lo[1] = -mPrimaryFrictionCoeff;
+    info->hi[1] = mPrimaryFrictionCoeff;
     info->findex[1] = 0;
 
     // Upper and lower bounds of tangential direction-2 impulsive force
@@ -579,7 +596,7 @@ void ContactConstraint::applyUnitImpulse(std::size_t index)
       // Both bodies are not reactive
       else
       {
-        // This case should not be happed
+        // This case should not be happened
         assert(0);
       }
     }
@@ -626,11 +643,11 @@ void ContactConstraint::getVelocityChange(double* vel, bool withCfm)
   if (withCfm)
   {
     vel[mAppliedImpulseIndex]
-      += vel[mAppliedImpulseIndex] * mConstraintForceMixing;
+        += vel[mAppliedImpulseIndex] * mConstraintForceMixing;
     switch (mAppliedImpulseIndex)
     {
       case 1:
-        vel[1] += (mSlipCompliance / mTimeStep);
+        vel[1] += (mPrimarySlipCompliance / mTimeStep);
         break;
       case 2:
         vel[2] += (mSecondarySlipCompliance / mTimeStep);
@@ -700,8 +717,6 @@ void ContactConstraint::applyImpulse(double* lambda)
       mBodyNodeA->addConstraintImpulse(mSpatialNormalA.col(2) * lambda[2]);
     if (mBodyNodeB->isReactive())
       mBodyNodeB->addConstraintImpulse(mSpatialNormalB.col(2) * lambda[2]);
-
-    // std::cout << "contact: " << mContact.force.transpose() << std::endl;
   }
   //----------------------------------------------------------------------------
   // Frictionless case
@@ -758,6 +773,27 @@ double ContactConstraint::computeFrictionCoefficient(
 }
 
 //==============================================================================
+double ContactConstraint::computePrimaryFrictionCoefficient(
+    const dynamics::ShapeNode* shapeNode)
+{
+  assert(shapeNode);
+
+  auto dynamicAspect = shapeNode->getDynamicsAspect();
+
+  if (dynamicAspect == nullptr)
+  {
+    dtwarn << "[ContactConstraint] Attempt to extract "
+           << "primary friction coefficient "
+           << "from a ShapeNode that doesn't have DynamicAspect. The default "
+           << "value (" << DART_DEFAULT_FRICTION_COEFF << ") will be used "
+           << "instead.\n";
+    return DART_DEFAULT_FRICTION_COEFF;
+  }
+
+  return dynamicAspect->getPrimaryFrictionCoeff();
+}
+
+//==============================================================================
 double ContactConstraint::computeSecondaryFrictionCoefficient(
     const dynamics::ShapeNode* shapeNode)
 {
@@ -779,7 +815,7 @@ double ContactConstraint::computeSecondaryFrictionCoefficient(
 }
 
 //==============================================================================
-double ContactConstraint::computeSlipCompliance(
+double ContactConstraint::computePrimarySlipCompliance(
     const dynamics::ShapeNode* shapeNode)
 {
   assert(shapeNode);
@@ -795,7 +831,7 @@ double ContactConstraint::computeSlipCompliance(
     return DART_DEFAULT_SLIP_COMPLIANCE;
   }
 
-  double slipCompliance = dynamicAspect->getSlipCompliance();
+  double slipCompliance = dynamicAspect->getPrimarySlipCompliance();
   if (slipCompliance < 0)
   {
     return DART_DEFAULT_SLIP_COMPLIANCE;
@@ -841,13 +877,14 @@ Eigen::Vector3d ContactConstraint::computeWorldFirstFrictionDir(
   {
     dtwarn << "[ContactConstraint] Attempt to extract friction direction "
            << "from a ShapeNode that doesn't have DynamicAspect. The default "
-           << "value (" << DART_DEFAULT_FRICTION_DIR << ") will be used "
-           << "instead.\n";
+           << "value (" << DART_DEFAULT_FRICTION_DIR.transpose()
+           << ") will be used instead.\n";
     return DART_DEFAULT_FRICTION_DIR;
   }
 
   auto frame = dynamicAspect->getFirstFrictionDirectionFrame();
-  Eigen::Vector3d frictionDir = dynamicAspect->getFirstFrictionDirection();
+  const Eigen::Vector3d& frictionDir
+      = dynamicAspect->getFirstFrictionDirection();
 
   // rotate using custom frame if it is specified
   if (frame)
@@ -914,7 +951,7 @@ ContactConstraint::getTangentBasisMatrixODE(const Eigen::Vector3d& n)
 
   // Pick an arbitrary vector to take the cross product of (in this case,
   // Z-axis)
-  Eigen::Vector3d tangent = mFirstFrictionalDirection.cross(n);
+  Eigen::Vector3d tangent = n.cross(mFirstFrictionalDirection);
 
   // TODO(JS): Modify following lines once _updateFirstFrictionalDirection() is
   //           implemented.
@@ -922,16 +959,16 @@ ContactConstraint::getTangentBasisMatrixODE(const Eigen::Vector3d& n)
   // pick another tangent (use X-axis as arbitrary vector)
   if (tangent.squaredNorm() < DART_CONTACT_CONSTRAINT_EPSILON_SQUARED)
   {
-    tangent = Eigen::Vector3d::UnitX().cross(n);
+    tangent = n.cross(Eigen::Vector3d::UnitX());
 
     // Make sure this is not zero length, otherwise normalization will lead to
     // NaN values.
     if (tangent.squaredNorm() < DART_CONTACT_CONSTRAINT_EPSILON_SQUARED)
     {
-      tangent = Eigen::Vector3d::UnitY().cross(n);
+      tangent = n.cross(Eigen::Vector3d::UnitY());
       if (tangent.squaredNorm() < DART_CONTACT_CONSTRAINT_EPSILON_SQUARED)
       {
-        tangent = Eigen::Vector3d::UnitZ().cross(n);
+        tangent = n.cross(Eigen::Vector3d::UnitZ());
 
         // Now tangent shouldn't be zero-length unless the normal is
         // zero-length, which shouldn't the case because ConstraintSolver
@@ -992,26 +1029,35 @@ void ContactConstraint::uniteSkeletons()
   }
 }
 
+//==============================================================================
 double ContactConstraint::getPrimarySlipCompliance() const
 {
-  return mSlipCompliance;
+  return mPrimarySlipCompliance;
 }
+
+//==============================================================================
 void ContactConstraint::setPrimarySlipCompliance(double slip)
 {
-  mSlipCompliance = slip;
+  mPrimarySlipCompliance = slip;
 }
+
+//==============================================================================
 double ContactConstraint::getSecondarySlipCompliance() const
 {
   return mSecondarySlipCompliance;
 }
+
+//==============================================================================
 void ContactConstraint::setSecondarySlipCompliance(double slip)
 {
   mSecondarySlipCompliance = slip;
 }
 
-const collision::Contact &ContactConstraint::getContact() const
+//==============================================================================
+const collision::Contact& ContactConstraint::getContact() const
 {
   return mContact;
 }
+
 } // namespace constraint
 } // namespace dart

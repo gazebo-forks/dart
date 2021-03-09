@@ -1,6 +1,20 @@
+# Set local target name
+set(target_name ${PROJECT_NAME}-gui-osg)
+set(component_name gui-osg)
+
 # Dependency checks
-if (NOT TARGET dart-gui)
-  return()
+dart_check_dependent_target(${target_name} dart-gui)
+
+# Minimum required OSG version
+set(min_osg_version 3.0.0)
+# OpenSceneGraph 3.6.5 or less are not compatible with macOS 10.15 (Catalina) or greater
+# See:
+#   - https://github.com/openscenegraph/OpenSceneGraph/issues/926
+#   - https://github.com/dartsim/dart/issues/1439
+if(APPLE)
+  if(NOT ${CMAKE_SYSTEM_VERSION} VERSION_LESS 19)
+    set(min_osg_version 3.7.0)
+  endif()
 endif()
 
 # OpenSceneGraph
@@ -11,7 +25,7 @@ if(DART_BUILD_GUI_OSG)
     set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE)
   endif()
 
-  find_package(OpenSceneGraph 3.0 QUIET
+  find_package(OpenSceneGraph ${min_osg_version} QUIET
     COMPONENTS osg osgViewer osgManipulator osgGA osgDB osgShadow
   )
 
@@ -41,7 +55,7 @@ if(DART_BUILD_GUI_OSG)
         set(warning_msg "Could NOT find OpenSceneGraph nor OpenThreads")
       endif()
     endif()
-    message(STATUS "${warning_msg} -- we will skip dart-gui-osg\n"
+    message(WARNING "${warning_msg} -- we will skip dart-gui-osg\n"
             "If you believe you do have both OSG and OpenThreads installed, try setting OSG_DIR")
     return()
   endif()
@@ -61,10 +75,6 @@ set(dart_gui_osg_hdrs ${hdrs})
 set(dart_gui_osg_srcs ${srcs})
 
 add_subdirectory(render)
-
-# Set local target name
-set(target_name ${PROJECT_NAME}-gui-osg)
-set(component_name gui-osg)
 
 # Add target
 dart_add_library(${target_name} ${hdrs} ${srcs} ${dart_gui_osg_hdrs} ${dart_gui_osg_srcs})
@@ -93,12 +103,10 @@ dart_generate_include_header_file(
 )
 
 # Install
-if(NOT DART_BUILD_DARTPY)
-  install(
-    FILES ${hdrs} ${CMAKE_CURRENT_BINARY_DIR}/osg.hpp
-    DESTINATION include/dart/gui/osg
-    COMPONENT headers
-  )
-endif()
+install(
+  FILES ${hdrs} ${CMAKE_CURRENT_BINARY_DIR}/osg.hpp
+  DESTINATION include/dart/gui/osg
+  COMPONENT headers
+)
 
 dart_format_add(${hdrs} ${srcs} ${dart_gui_osg_hdrs} ${dart_gui_osg_srcs})

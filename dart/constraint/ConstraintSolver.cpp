@@ -31,6 +31,7 @@
  */
 
 #include "dart/constraint/ConstraintSolver.hpp"
+
 #include <algorithm>
 
 #include "dart/collision/CollisionFilter.hpp"
@@ -484,18 +485,19 @@ void ConstraintSolver::updateConstraints()
       = std::pair<collision::CollisionObject*, collision::CollisionObject*>;
 
   // Compare contact pairs while ignoring their order in the pair.
-  struct ContactPairCompare {
-    ContactPair SortedPair(const ContactPair &a) const
+  struct ContactPairCompare
+  {
+    ContactPair getSortedPair(const ContactPair& a) const
     {
       if (a.first < a.second)
         return std::make_pair(a.second, a.first);
       return a;
     }
 
-    bool operator()(const ContactPair &a, const ContactPair & b) const
+    bool operator()(const ContactPair& a, const ContactPair& b) const
     {
       // Sort each pair and then do a lexicographical comparison
-      return SortedPair(a) < SortedPair(b);
+      return getSortedPair(a) < getSortedPair(b);
     }
   };
 
@@ -559,6 +561,10 @@ void ConstraintSolver::updateConstraints()
     if (it != contactPairMap.end())
       numContacts = it->second;
 
+    // The slip compliance acts like a damper at each contact point so the total
+    // damping for each collision is multiplied by the number of contact points
+    // (numContacts). To eliminate this dependence on numContacts, the inverse
+    // damping is multiplied by numContacts.
     contactConstraint->setPrimarySlipCompliance(
         contactConstraint->getPrimarySlipCompliance() * numContacts);
     contactConstraint->setSecondarySlipCompliance(
@@ -609,7 +615,7 @@ void ConstraintSolver::updateConstraints()
         }
       }
 
-      if (joint->isPositionLimitEnforced())
+      if (joint->areLimitsEnforced())
       {
         mJointLimitConstraints.push_back(
             std::make_shared<JointLimitConstraint>(joint));

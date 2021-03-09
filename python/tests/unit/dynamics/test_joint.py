@@ -59,7 +59,7 @@ def kinematics_tester(joint):
             Ji[3] = Ji_4x4matrix[0, 3]
             Ji[4] = Ji_4x4matrix[1, 3]
             Ji[5] = Ji_4x4matrix[2, 3]
-            numericJ[:,i] = Ji
+            numericJ[:, i] = Ji
 
         assert np.allclose(J, numericJ, atol=1e-5)
 
@@ -100,6 +100,47 @@ def test_kinematics():
     skel = dart.dynamics.Skeleton()
     joint, _ = skel.createPlanarJointAndBodyNodePair()
     kinematics_tester(joint)
+
+
+def test_access_to_parent_child_transforms():
+    skel = dart.dynamics.Skeleton()
+    joint, _ = skel.createRevoluteJointAndBodyNodePair()
+
+    parentToJointTf = dart.math.Isometry3.Identity()
+    parentToJointTf.set_translation(np.random.rand(3, 1))
+    childToJointTf = dart.math.Isometry3.Identity()
+    childToJointTf.set_translation(np.random.rand(3, 1))
+
+    joint.setTransformFromParentBodyNode(parentToJointTf)
+    joint.setTransformFromChildBodyNode(childToJointTf)
+
+    storedParentTf = joint.getTransformFromParentBodyNode()
+    storedChildTf = joint.getTransformFromChildBodyNode()
+
+    assert np.allclose(parentToJointTf.matrix(), storedParentTf.matrix())
+    assert np.allclose(childToJointTf.matrix(), storedChildTf.matrix())
+
+
+def test_BallJoint_positions_conversion():
+    assert np.allclose(
+        dart.dynamics.BallJoint.convertToPositions(np.eye(3)),
+        np.zeros((1, 3))
+    )
+    assert np.allclose(
+        dart.dynamics.BallJoint.convertToPositions(
+            np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])),
+        np.array([0, 0, -np.pi/2])
+    )
+
+    for i in range(30):
+        ballJointPos = np.random.uniform(-np.pi/2, np.pi/2, 3)
+        assert np.allclose(
+            dart.dynamics.BallJoint.convertToRotation(
+                dart.dynamics.BallJoint.convertToPositions(
+                    dart.dynamics.BallJoint.convertToRotation(ballJointPos)
+                )),
+            dart.dynamics.BallJoint.convertToRotation(ballJointPos)
+        )
 
 
 if __name__ == "__main__":

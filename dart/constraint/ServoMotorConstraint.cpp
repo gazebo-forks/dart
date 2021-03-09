@@ -79,6 +79,19 @@ ServoMotorConstraint::~ServoMotorConstraint()
 }
 
 //==============================================================================
+const std::string& ServoMotorConstraint::getType() const
+{
+  return getStaticType();
+}
+
+//==============================================================================
+const std::string& ServoMotorConstraint::getStaticType()
+{
+  static const std::string name = "ServoMotorConstraint";
+  return name;
+}
+
+//==============================================================================
 void ServoMotorConstraint::setConstraintForceMixing(double cfm)
 {
   // Clamp constraint force mixing parameter if it is out of the range
@@ -89,14 +102,6 @@ void ServoMotorConstraint::setConstraintForceMixing(double cfm)
            << "] is lower than 1e-9. "
            << "It is set to 1e-9." << std::endl;
     mConstraintForceMixing = 1e-9;
-  }
-  if (cfm > 1.0)
-  {
-    dtwarn << "[ServoMotorConstraint::setConstraintForceMixing] "
-           << "Constraint force mixing parameter[" << cfm
-           << "] is greater than 1.0. "
-           << "It is set to 1.0." << std::endl;
-    mConstraintForceMixing = 1.0;
   }
 
   mConstraintForceMixing = cfm;

@@ -48,6 +48,7 @@ The code doesn't need to be perfect right away, feel free to post work-in-progre
  [pchorak](https://github.com/pchorak)              | bug fixes
  [acxz](https://github.com/acxz)                    | doxygen warning fix
  [Addisu Taddese](https://github.com/azeey)         | bug fix in ode collision detector
+ [Christoph Hinze](https://github.com/chhinze)      | python bindings
 
 You can find the complete contribution history in [here](https://github.com/dartsim/dart/graphs/contributors).
 
@@ -228,7 +229,7 @@ int ExampleClass::exampleMethod(int a, int b, int* out) const
 
 You can automatically format all DART code
 using [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) through
-CMake. Make sure `clang-format 3.8` is installed.
+CMake. Make sure `clang-format 6.0` is installed.
 
 ##### Using CMake
 

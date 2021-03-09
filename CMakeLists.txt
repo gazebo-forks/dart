@@ -51,7 +51,7 @@ initialize_component_helpers(${PROJECT_NAME})
 
 # System install paths on Windows
 if(WIN32)
-  set(CMAKE_INSTALL_PREFIX "C:/Golems" CACHE PATH "Install prefix" FORCE)
+  set(CMAKE_INSTALL_PREFIX "C:/Golems" CACHE PATH "Install prefix")
 endif()
 
 #===============================================================================
@@ -73,7 +73,6 @@ set(DART_PKG_EXTERNAL_DEPS "eigen, ccd, fcl, assimp, boost")
 # Build options
 #===============================================================================
 option(DART_VERBOSE "Whether print detailed information in CMake process" OFF)
-option(ENABLE_OPENMP "Build with OpenMP parallaization enabled" ON)
 if(MSVC)
   set(DART_RUNTIME_LIBRARY "/MD" CACHE STRING "BaseName chosen by the user at CMake configure time")
   set_property(CACHE DART_RUNTIME_LIBRARY PROPERTY STRINGS /MD /MT)
@@ -96,10 +95,13 @@ option(DART_CODECOV "Turn on codecov support" OFF)
 option(DART_TREAT_WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
 option(DART_FAST_DEBUG "Add -O1 option for DEBUG mode build" OFF)
 option(DART_BUILD_DARTPY "Build dartpy (the python binding)" OFF)
-
-if(DART_BUILD_DARTPY)
-  set(BUILD_SHARED_LIBS OFF)
-endif()
+# GCC and Clang add ANSI-formatted colors when they detect the output medium is a 
+# terminal. However, this doesn't work in some cases such as when the makefile is
+# invoked by Ninja. DART_FORCE_COLORED_OUTPUT can be used in this case to enforce
+# to always generate ANSI-formatted colors regardless of the output medium types.
+# See: https://medium.com/@alasher/colored-c-compiler-output-with-ninja-clang-gcc-10bfe7f2b949
+option(DART_FORCE_COLORED_OUTPUT
+  "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 
 #===============================================================================
 # Print intro
@@ -142,7 +144,7 @@ elseif("${CMAKE_BUILD_TYPE_UPPERCASE}" STREQUAL "RELWITHDEBINFO")
 elseif("${CMAKE_BUILD_TYPE_UPPERCASE}" STREQUAL "MINSIZEREL")
   set(BUILD_TYPE_MINSIZEREL TRUE)
 else()
-  message(STATUS "CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} unknown. Valid options are: Debug | Release | RelWithDebInfo | MinSizeRel")
+  message(WARNING "CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} unknown. Valid options are: Debug | Release | RelWithDebInfo | MinSizeRel")
 endif()
 
 #===============================================================================
@@ -167,31 +169,33 @@ endif()
 if(MSVC)
 
   # Visual Studio enables C++14 support by default
-  if(MSVC_VERSION VERSION_LESS 1900)
-    message(FATAL_ERROR "${PROJECT_NAME} requires VS2017 or greater.")
+  set(msvc_required_version 1920)
+  if(MSVC_VERSION VERSION_LESS ${msvc_required_version} AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+    message(FATAL_ERROR "Visual Studio ${MSVC_VERSION} is detected, but "
+      "${PROJECT_NAME_UPPERCASE} requires ${msvc_required_version} or greater."
+    )
   endif()
+
   if(DART_TREAT_WARNINGS_AS_ERRORS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
   endif()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /permissive- /Zc:twoPhase-")
-  #set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/LTCG /INCREMENTAL:NO")
+  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/LTCG /INCREMENTAL:NO")
   if(NOT DART_MSVC_DEFAULT_OPTIONS)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${DART_RUNTIME_LIBRARY}d /Zi /Gy /W1 /EHsc")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${DART_RUNTIME_LIBRARY} /Zi /GL /Gy /W1 /EHsc")
   endif(NOT DART_MSVC_DEFAULT_OPTIONS)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  add_compile_options(/wd4334)
-  add_compile_options(/wd4267)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_ENABLE_EXTENDED_ALIGNED_STORAGE)
+  add_compile_options(/wd4005)
+  add_compile_options(/wd4099)
   add_compile_options(/wd4244)
   add_compile_options(/wd4250)
-  add_compile_options(/wd4996)
-  add_compile_options(/wd4099)
+  add_compile_options(/wd4267)
   add_compile_options(/wd4305)
+  add_compile_options(/wd4334)
   add_compile_options(/wd4838)
+  add_compile_options(/wd4996)
   add_compile_options(/bigobj)
-  if(MSVC_VERSION GREATER_EQUAL 1915)
-    add_compile_definitions(_ENABLE_EXTENDED_ALIGNED_STORAGE)
-  endif()
 
 elseif(CMAKE_COMPILER_IS_GNUCXX)
 
@@ -201,7 +205,6 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC")
   execute_process(
     COMMAND ${CMAKE_CXX_COMPILER} -dumpfullversion -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-  set(CXX_COMPILER_VERSION ${GCC_VERSION})
   if(GCC_VERSION VERSION_LESS 5.3.1)
     message(FATAL_ERROR "The installed g++ version is ${GCC_VERSION}. ${PROJECT_NAME} requires g++ 5.3.1 or greater.")
   endif()
@@ -214,6 +217,11 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_DEBUG} -pg")
   set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
 
+  # Enforce to colorize compilation output
+  if(${DART_FORCE_COLORED_OUTPUT})
+    add_compile_options(-fdiagnostics-color=always)
+  endif()
+
 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
   if(DART_TREAT_WARNINGS_AS_ERRORS)
@@ -224,7 +232,6 @@ elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
   execute_process(
     COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE CLANG_VERSION)
-  set(CXX_COMPILER_VERSION ${CLANG_VERSION})
   if(CLANG_VERSION VERSION_LESS 3.8)
     message(FATAL_ERROR "The installed Clang version is ${CLANG_VERSION}. ${PROJECT_NAME} requires clang 3.8 or greater.")
   endif()
@@ -240,6 +247,11 @@ elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_DEBUG} -pg")
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.8")
 
+  # Enforce to colorize compilation output
+  if(${DART_FORCE_COLORED_OUTPUT})
+     add_compile_options(-fcolor-diagnostics)
+  endif()
+
 else()
 
   message(SEND_ERROR "Compiler[${CMAKE_CXX_COMPILER_ID}] not supported.")
@@ -254,10 +266,9 @@ if(DART_VERBOSE)
   message(STATUS "[ Build summary ]")
   message(STATUS "CMAKE_GENERATOR  : ${CMAKE_GENERATOR}")
   message(STATUS "Compiler ID      : ${CMAKE_CXX_COMPILER_ID}")
-  message(STATUS "Compiler version : ${CXX_COMPILER_VERSION}")
+  message(STATUS "Compiler version : ${CMAKE_CXX_COMPILER_VERSION}")
   message(STATUS "Build type       : ${CMAKE_BUILD_TYPE}")
   message(STATUS "BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
-  message(STATUS "ENABLE_OPENMP    : ${ENABLE_OPENMP}")
   message(STATUS "Build gui::osg   : ${DART_BUILD_GUI_OSG}")
   message(STATUS "Install path     : ${CMAKE_INSTALL_PREFIX}")
   message(STATUS "CXX_FLAGS        : ${CMAKE_CXX_FLAGS}")
@@ -282,12 +293,12 @@ add_subdirectory(dart)
 
 set(DART_IN_SOURCE_BUILD TRUE)
 
-if(TARGET dart AND NOT DART_BUILD_DARTPY)
+if(TARGET dart)
 
   # Add a "tests" target to build unit tests.
   enable_testing()
   if(MSVC)
-    # add_subdirectory(unittests)
+    add_subdirectory(unittests)
   else()
     add_subdirectory(unittests EXCLUDE_FROM_ALL)
   endif()
@@ -338,7 +349,7 @@ if (DART_BUILD_DARTPY)
   add_subdirectory(python)
 endif()
 
-if(DART_BUILD_EXTRAS AND NOT DART_BUILD_DARTPY)
+if(DART_BUILD_EXTRAS)
   add_subdirectory(extras)
 endif()
 
@@ -389,55 +400,49 @@ write_basic_config_version_file(
   VERSION ${${PROJECT_NAME_UPPERCASE}_VERSION}
   COMPATIBILITY SameMajorVersion
 )
-if(NOT DART_BUILD_DARTPY)
-  install(
-    FILES ${DART_CONFIG_OUT} ${DART_VERSION_OUT}
-    DESTINATION "${CONFIG_INSTALL_DIR}"
-  )
-endif()
+install(
+  FILES ${DART_CONFIG_OUT} ${DART_VERSION_OUT}
+  DESTINATION "${CONFIG_INSTALL_DIR}"
+)
 
 # Generate the DART pkg-config
 set(PC_CONFIG_IN ${CMAKE_SOURCE_DIR}/cmake/dart.pc.in)
 set(PC_CONFIG_OUT ${CMAKE_BINARY_DIR}/cmake/dart.pc)
+set(PC_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+file(RELATIVE_PATH
+  RELATIVE_PATH_TO_INSTALL_PREFIX
+  "${PC_CONFIG_INSTALL_DIR}"
+  "${CMAKE_INSTALL_PREFIX}"
+)
 if(DART_VERBOSE)
   message(STATUS ${PC_CONFIG_OUT})
 endif()
 configure_file(${PC_CONFIG_IN} ${PC_CONFIG_OUT} @ONLY)
-if(NOT DART_BUILD_DARTPY)
-  install(FILES ${PC_CONFIG_OUT} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-endif()
+install(FILES ${PC_CONFIG_OUT} DESTINATION ${PC_CONFIG_INSTALL_DIR})
 
 # Install a Catkin 'package.xml' file. This is required by REP-136.
-if(NOT DART_BUILD_DARTPY)
-  install(FILES package.xml DESTINATION
-    ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}
-  )
-endif()
+install(FILES package.xml DESTINATION
+  ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}
+)
 
 #===============================================================================
 # Install sample data, examples, and tutorials
 #===============================================================================
 
 # Sample data
-if(NOT DART_BUILD_DARTPY)
-  install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
-    DESTINATION ${DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH}
-  )
-endif()
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
+  DESTINATION ${DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH}
+)
 
 # Examples source
-if(NOT DART_BUILD_DARTPY)
-  install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/examples"
-    DESTINATION ${DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH}
-  )
-endif()
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/examples"
+  DESTINATION ${DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH}
+)
 
 # Tutorials source
-if(NOT DART_BUILD_DARTPY)
-  install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tutorials"
-    DESTINATION ${DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH}
-  )
-endif()
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tutorials"
+  DESTINATION ${DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH}
+)
 
 #===============================================================================
 # Uninstall
@@ -497,7 +502,7 @@ if(CLANG_FORMAT_EXECUTABLE)
 else()
 
   if(DART_VERBOSE)
-    message(STATUS "Looking for clang-format - NOT found, please install clang-format to enable automatic code formatting")
+    message(WARNING "Looking for clang-format - NOT found, please install clang-format to enable automatic code formatting")
   endif()
 
 endif()
@@ -573,20 +578,6 @@ if(DOXYGEN_FOUND)
     DEPENDS "${DOXYGEN_HTML_INDEX}"
     COMMENT "Opening documentation in a web browser.")
 
-endif()
-
-#===============================================================================
-# Coloring build outputs using gccfilter if appliciable
-# Ref: http://stackoverflow.com/questions/14399984/make-cmake-use-gccfilter
-#===============================================================================
-if("${PERLMODULES_FOUND}" STREQUAL "TRUE")
-  if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_GNUCPP)
-    option(COLOR_GCC "Use GCCFilter to color compiler output messages" ON)
-    set(COLOR_GCC_OPTIONS "-c -r -w" CACHE STRING "Arguments that are passed to gccfilter when output coloring is switchend on. Defaults to -c -r -w.")
-    if(COLOR_GCC)
-      set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${PROJECT_SOURCE_DIR}/tools/gccfilter ${COLOR_GCC_OPTIONS}")
-    endif()
-  endif()
 endif()
 
 #===============================================================================
