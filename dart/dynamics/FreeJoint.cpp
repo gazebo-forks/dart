@@ -617,25 +617,23 @@ void FreeJoint::integratePositions(double _dt)
 //==============================================================================
 void FreeJoint::integrateVelocities(double _dt)
 {
-  const Eigen::Vector6d& vel = getVelocitiesStatic();
+  const Eigen::Vector6d vel = getVelocitiesStatic();
   // Acceleration with additional term to take into account changing linear
   // velocity in the inertial frame.
   Eigen::Vector6d accelWithInertialTerm = getAccelerationsStatic();
 
-  // Not sure if we need a different inertia than the one from the child body
-  // node.
-  const Eigen::Matrix6d& mI = getChildBodyNode()->getSpatialInertia();
+  const Eigen::Matrix6d& mI = getChildBodyNode()->getArticulatedInertia();
   const Eigen::Matrix6d& artInvProjI = getInvProjArtInertia();
   // Remove Coriolis term because the velocity will be updated when integrating
   // position and that will account for the rotation of the frame.
-  accelWithInertialTerm.tail<3>()
-      -= (artInvProjI * math::dad(vel, mI * vel)).tail<3>();
+  const Eigen::Vector6d biasTerm = (artInvProjI * math::dad(vel, mI * vel));
+  accelWithInertialTerm -= biasTerm;
 
   setVelocitiesStatic(math::integrateVelocity<math::SE3Space>(
       getVelocitiesStatic(), accelWithInertialTerm, _dt));
-  // vel now points to the updated velocity
+  const Eigen::Vector6d velNew = getVelocitiesStatic();
   accelWithInertialTerm.tail<3>()
-      += (artInvProjI * math::dad(vel, mI * vel)).tail<3>();
+      += (artInvProjI * math::dad(velNew , mI * velNew )).tail<3>();
   setAccelerationsStatic(accelWithInertialTerm);
 }
 
@@ -645,18 +643,18 @@ void FreeJoint::updateConstrainedTerms(double timeStep)
 
   const Eigen::Vector6d& vel = getVelocitiesStatic();
   Eigen::Vector6d accelWithInertialTerm = getAccelerationsStatic();
-  const Eigen::Matrix6d& mI = getChildBodyNode()->getSpatialInertia();
-  const Eigen::Matrix6d& artInvI = getInvProjArtInertia();
+  const Eigen::Matrix6d& mI = getChildBodyNode()->getArticulatedInertia();
+  const Eigen::Matrix6d& artInvProjI = getInvProjArtInertia();
   // Remove Coriolis term because the velocity will be updated when integrating
   // position and that will account for the rotation of the frame.
-  accelWithInertialTerm.tail<3>()
-      -= (artInvI * math::dad(vel, mI * vel)).tail<3>();
+  const Eigen::Vector6d biasTerm = (artInvProjI * math::dad(vel, mI * vel));
+  accelWithInertialTerm -= biasTerm;
 
   setVelocitiesStatic(getVelocitiesStatic() + mVelocityChanges);
 
   // vel now points to the updated velocity
   accelWithInertialTerm.tail<3>()
-      += (artInvI * math::dad(vel, mI * vel)).tail<3>();
+      += (artInvProjI * math::dad(vel, mI * vel)).tail<3>();
   setAccelerationsStatic(
       accelWithInertialTerm + mVelocityChanges * invTimeStep);
 
