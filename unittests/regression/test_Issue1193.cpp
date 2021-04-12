@@ -75,3 +75,168 @@ TEST(Issue1193, AngularVelAdd)
   EXPECT_NEAR(maxSteps * world->getGravity().y() * dt, ly, 1e-8);
   EXPECT_NEAR(0.0, lz, 1e-8);
 }
+
+const double tol = 1e-5;
+const int g_iters = 100000;
+
+TEST(Issue000, SingleBodyWithOffDiagonalMoi)
+{
+  WorldPtr world = World::create();
+  const double dt = 0.001;
+  world->setTimeStep(dt);
+  world->setGravity(Vector3d::Zero());
+  SkeletonPtr skel = createBox({1, 1, 1});
+  skel->disableSelfCollisionCheck();
+  world->addSkeleton(skel);
+  auto rootBn = skel->getRootBodyNode();
+  rootBn->setMomentOfInertia(1.1, 1.1, 0.7, 0.1, 0, 0);
+
+  Vector6d vels = compose({0, 25, 0}, {0, 0, -100});
+
+  rootBn->getParentJoint()->setVelocities(vels);
+
+  rootBn->addExtTorque({0, 50, 0});
+  for (int i = 0; i < g_iters; ++i)
+  {
+    world->step();
+    // auto pose = rootBn->getWorldTransform();
+    // std::cout << i << " " << pose.translation().transpose() << std::endl;
+  }
+  auto position = rootBn->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, position.x(), tol);
+  EXPECT_NEAR(0.0, position.y(), tol);
+  EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
+}
+
+TEST(Issue000, SingleBodyWithJointOffset)
+{
+  WorldPtr world = World::create();
+  const double dt = 0.0001;
+  world->setTimeStep(dt);
+  world->setGravity(Vector3d::Zero());
+  SkeletonPtr skel = createBox({1, 1, 1});
+  skel->disableSelfCollisionCheck();
+  world->addSkeleton(skel);
+  auto rootBn = skel->getRootBodyNode();
+  rootBn->setMomentOfInertia(1.1, 1.1, 0.7, 0.1, 0, 0);
+
+  Vector6d vels = compose({0, 25, 0}, {0, 0, -100});
+
+  auto *freeJoint = dynamic_cast<FreeJoint *>(rootBn->getParentJoint());
+  freeJoint->setVelocities(vels);
+
+  Eigen::Isometry3d jointPoseInParent = Eigen::Isometry3d::Identity();
+  jointPoseInParent.translate(Eigen::Vector3d(0.0, 4.0, 0));
+  freeJoint->setTransformFromParentBodyNode(jointPoseInParent);
+
+  rootBn->addExtTorque({0, 50, 0});
+  for (int i = 0; i < g_iters; ++i)
+  {
+    world->step();
+    // auto pose = rootBn->getWorldTransform();
+    // std::cout << i << " " << pose.translation().transpose() << std::endl;
+  }
+
+  auto position = rootBn->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, position.x(), tol);
+  EXPECT_NEAR(4.0, position.y(), tol);
+  EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
+}
+
+//==============================================================================
+TEST(Issue000, WithFixedJoint)
+{
+  WorldPtr world = World::create();
+  const double dt = 0.001;
+  world->setTimeStep(dt);
+  world->setGravity(Vector3d::Zero());
+  SkeletonPtr skel = createBox({1, 1, 1}, {0, 0, 2});
+  skel->disableSelfCollisionCheck();
+  world->addSkeleton(skel);
+  auto rootBn = skel->getRootBodyNode();
+  rootBn->setMomentOfInertia(1.1, 1.1, 0.7, 0.1, 0, 0);
+
+  Eigen::Isometry3d comPose;
+  comPose = Eigen::Translation3d(0, 0, -2);
+  auto comFrame = SimpleFrame::createShared(rootBn, "CombinedCOM", comPose);
+
+  GenericJoint<R1Space>::Properties joint2Prop(std::string("joint2"));
+  BodyNode::Properties link2Prop(
+      BodyNode::AspectProperties(std::string("link2")));
+  link2Prop.mInertia.setMass(1.0);
+
+  auto pair = rootBn->createChildJointAndBodyNodePair<WeldJoint>(
+      WeldJoint::Properties(joint2Prop), link2Prop);
+  auto *joint = pair.first;
+
+  Eigen::Isometry3d jointPoseInParent = Eigen::Isometry3d::Identity();
+  jointPoseInParent.translate(Eigen::Vector3d(0.0, 0.0, -4));
+  joint->setTransformFromParentBodyNode(jointPoseInParent);
+
+  Vector6d vels = compose({0, 25, 0}, {0, 0, -100});
+  rootBn->getParentJoint()->setVelocities(vels);
+
+  pair.second->addExtTorque({0, 50, 0});
+  for (int i = 0; i < g_iters; ++i)
+  {
+    world->step();
+    // auto pose = comFrame->getWorldTransform();
+    // std::cout << i << " " << pose.translation().transpose() << std::endl;
+  }
+  auto position = comFrame->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, position.x(), tol);
+  EXPECT_NEAR(0.0, position.y(), tol);
+  EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
+}
+
+TEST(Issue000, WithRevoluteJoint)
+{
+  WorldPtr world = World::create();
+  const double dt = 0.001;
+  world->setTimeStep(dt);
+  world->setGravity(Vector3d::Zero());
+  SkeletonPtr skel = createBox({1, 1, 1}, {0, 0, 2});
+  skel->disableSelfCollisionCheck();
+  world->addSkeleton(skel);
+  auto rootBn = skel->getRootBodyNode();
+  rootBn->setMomentOfInertia(1.1, 1.1, 0.7, 0.1, 0, 0);
+
+  Eigen::Isometry3d comPose;
+  comPose = Eigen::Translation3d(0, 0, -2);
+  auto comFrame = SimpleFrame::createShared(rootBn, "CombinedCOM", comPose);
+
+  GenericJoint<R1Space>::Properties joint2Prop(std::string("joint2"));
+  BodyNode::Properties link2Prop(
+      BodyNode::AspectProperties(std::string("link2")));
+  link2Prop.mInertia.setMass(1.0);
+
+  auto pair = rootBn->createChildJointAndBodyNodePair<RevoluteJoint>(
+      RevoluteJoint::Properties(joint2Prop, Vector3d(1, 0, 0)), link2Prop);
+
+  auto *joint = pair.first;
+  (void) joint;
+
+  Eigen::Isometry3d jointPoseInParent = Eigen::Isometry3d::Identity();
+  jointPoseInParent.translate(Eigen::Vector3d(0.0, 0.0, -4));
+  joint->setTransformFromParentBodyNode(jointPoseInParent);
+
+  Vector6d vels = compose({0, 25, 0}, {0, 0, -100});
+
+  rootBn->getParentJoint()->setVelocities(vels);
+
+  for (int i = 0; i < g_iters; ++i)
+  {
+    // joint->setCommand(0, 1000.0);
+    joint->setCommand(0, 10.0);
+    world->step();
+    // auto pose = rootBn->getWorldTransform();
+    // auto poseCOM = comFrame->getWorldTransform();
+    // std::cout << i << " " << pose.translation().transpose() << "\t"
+    //   << poseCOM.translation().transpose() << std::endl;
+  }
+
+  auto position = comFrame->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, position.x(), tol);
+  EXPECT_NEAR(0.0, position.y(), tol);
+  EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
+}
