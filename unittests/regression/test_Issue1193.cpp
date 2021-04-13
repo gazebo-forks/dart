@@ -154,7 +154,6 @@ TEST(Issue000, WithFixedJoint)
   skel->disableSelfCollisionCheck();
   world->addSkeleton(skel);
   auto rootBn = skel->getRootBodyNode();
-  rootBn->setMomentOfInertia(1.1, 1.1, 0.7, 0.1, 0, 0);
 
   Eigen::Isometry3d comPose;
   comPose = Eigen::Translation3d(0, 0, -2);
@@ -199,7 +198,6 @@ TEST(Issue000, WithRevoluteJoint)
   skel->disableSelfCollisionCheck();
   world->addSkeleton(skel);
   auto rootBn = skel->getRootBodyNode();
-  rootBn->setMomentOfInertia(1.1, 1.1, 0.7, 0.1, 0, 0);
 
   Eigen::Isometry3d comPose;
   comPose = Eigen::Translation3d(0, 0, -2);
