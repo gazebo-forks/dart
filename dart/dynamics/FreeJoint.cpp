@@ -608,9 +608,6 @@ void FreeJoint::integratePositions(double _dt)
   auto* bn = getChildBodyNode();
   Eigen::Isometry3d Tcom;
   // Transform from joint to center of mass of child body
-  // Tcom = Eigen::Translation3d(
-      // Joint::mAspectProperties.mT_ChildBodyToJoint.inverse()
-      // * bn->getLocalCOM());
   Tcom = Eigen::Translation3d(
       Joint::mAspectProperties.mT_ChildBodyToJoint.inverse()
       * computeTreeCom(bn));
@@ -654,7 +651,9 @@ void FreeJoint::integrateVelocities(double _dt)
 
   // std::cout << "accel: " << accelWithInertialTerm.transpose() << "\n";
 
-  accelWithInertialTerm -= biasTerm;
+  // accelWithInertialTerm -= biasTerm;
+  accelWithInertialTerm.tail<3>() -= biasTerm.tail<3>();
+
   // accelWithInertialTerm -= totalBiasAcceleration;
   // accelWithInertialTerm -= childBiasAccel;
   // accelWithInertialTerm.tail<3>() -= childBiasAccel.tail<3>();
@@ -672,6 +671,8 @@ void FreeJoint::integrateVelocities(double _dt)
   //           << "biasTermFreeJointInertia: " << biasTermFreeJointInertia.transpose()
   //           << std::endl;
 
+  setVelocitiesStatic(math::integrateVelocity<math::SE3Space>(
+      getVelocitiesStatic(), accelWithInertialTerm, _dt));
 }
 
 void FreeJoint::updateConstrainedTerms(double timeStep)

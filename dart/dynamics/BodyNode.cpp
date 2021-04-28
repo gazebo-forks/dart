@@ -40,7 +40,6 @@
 #include "dart/common/StlHelpers.hpp"
 #include "dart/dynamics/Chain.hpp"
 #include "dart/dynamics/EndEffector.hpp"
-#include "dart/dynamics/FreeJoint.hpp"
 #include "dart/dynamics/Joint.hpp"
 #include "dart/dynamics/Marker.hpp"
 #include "dart/dynamics/Shape.hpp"
@@ -1738,13 +1737,7 @@ void BodyNode::updateBiasForce(
 
   // Set bias force
   const Eigen::Vector6d& V = getSpatialVelocity();
-  Eigen::Vector6d coriolisForce = -math::dad(V, mI * V);
-  // if (getParentJoint()->getNumDofs() == 6)
-  // {
-  //   coriolisForce.setZero();
-  // }
-  mBiasForce = coriolisForce - mAspectState.mFext - mFgravity;
-  mCoriolisForce = -coriolisForce;
+  mBiasForce = -math::dad(V, mI * V) - mAspectState.mFext - mFgravity;
 
   // Verification
   assert(!math::isNan(mBiasForce));
@@ -1753,12 +1746,6 @@ void BodyNode::updateBiasForce(
   for (const auto& childBodyNode : mChildBodyNodes)
   {
     Joint* childJoint = childBodyNode->getParentJoint();
-
-    childJoint->addChildCoriolisForceTo(
-        mCoriolisForce,
-        childBodyNode->getArticulatedInertiaImplicit(),
-        childBodyNode->mCoriolisForce,
-        childBodyNode->getPartialAcceleration());
 
     childJoint->addChildBiasForceTo(
         mBiasForce,
@@ -1775,7 +1762,6 @@ void BodyNode::updateBiasForce(
   mParentJoint->updateTotalForce(
       getArticulatedInertiaImplicit() * getPartialAcceleration() + mBiasForce,
       _timeStep);
-  mCoriolisForce += getArticulatedInertiaImplicit() * getPartialAcceleration();
 }
 
 //==============================================================================
@@ -1976,15 +1962,6 @@ void BodyNode::clearConstraintImpulse()
 const Eigen::Vector6d& BodyNode::getBodyForce() const
 {
   return mF;
-}
-//==============================================================================
-const Eigen::Vector6d& BodyNode::getCoriolisForce() const
-{
-  return mCoriolisForce;
-}
-const Eigen::Vector6d& BodyNode::getBiasForce() const
-{
-  return mBiasForce;
 }
 
 //==============================================================================

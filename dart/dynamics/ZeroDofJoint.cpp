@@ -785,16 +785,6 @@ void ZeroDofJoint::addChildBiasForceTo(
       getRelativeTransform(),
       _childBiasForce + _childArtInertia * _childPartialAcc);
 }
-void ZeroDofJoint::addChildCoriolisForceTo(
-    Eigen::Vector6d& parentCoriolisForce,
-    const Eigen::Matrix6d& childArtInertia,
-    const Eigen::Vector6d& childCoriolisForce,
-    const Eigen::Vector6d& childPartialAcc)
-{
-  parentCoriolisForce += math::dAdInvT(
-      getRelativeTransform(),
-      childCoriolisForce + childArtInertia * childPartialAcc);
-}
 
 //==============================================================================
 void ZeroDofJoint::addChildBiasImpulseTo(

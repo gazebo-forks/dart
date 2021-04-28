@@ -579,12 +579,6 @@ protected:
       const Eigen::Vector6d& childBiasForce,
       const Eigen::Vector6d& childPartialAcc) override;
 
-  void addChildCoriolisForceTo(
-      Eigen::Vector6d& parentCoriolisForce,
-      const Eigen::Matrix6d& childArtInertia,
-      const Eigen::Vector6d& childCoriolisForce,
-      const Eigen::Vector6d& childPartialAcc) override;
-
   // Documentation inherited
   void addChildBiasImpulseTo(
       Eigen::Vector6d& parentBiasImpulse,

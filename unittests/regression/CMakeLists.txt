@@ -35,4 +35,3 @@ if(TARGET dart-collision-bullet AND TARGET dart-collision-ode)
 endif()
 
 dart_add_test("regression" test_Issue1193)
-dart_add_test("regression" test_Issue000)

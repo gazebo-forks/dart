@@ -796,8 +796,6 @@ public:
   /// body through the connecting joint. It is expressed in this BodyNode's
   /// frame.
   const Eigen::Vector6d& getBodyForce() const;
-  const Eigen::Vector6d& getCoriolisForce() const;
-  const Eigen::Vector6d& getBiasForce() const;
 
   //----------------------------------------------------------------------------
   // Constraints
@@ -1178,9 +1176,6 @@ protected:
 
   /// Bias force
   Eigen::Vector6d mBiasForce;
-
-  /// Coriolis force
-  Eigen::Vector6d mCoriolisForce;
 
   /// Cache data for combined vector of the system.
   Eigen::Vector6d mCg_dV;

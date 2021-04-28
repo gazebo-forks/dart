@@ -163,8 +163,8 @@ TEST(Issue000, SingleBodyWithJointOffset)
   for (int i = 0; i < g_iters; ++i)
   {
     world->step();
-    auto pose = rootBn->getWorldTransform();
-    std::cout << i << " " << pose.translation().transpose() << std::endl;
+    // auto pose = rootBn->getWorldTransform();
+    // std::cout << i << " " << pose.translation().transpose() << std::endl;
   }
 
   auto position = rootBn->getWorldTransform().translation();
@@ -215,9 +215,9 @@ TEST(Issue000, WithFixedJoint)
     std::cout << i << " " << pose.translation().transpose() << std::endl;
     world->step();
   }
-  // auto position = comFrame->getWorldTransform().translation();
-  // EXPECT_NEAR(0.0, position.x(), tol);
-  // EXPECT_NEAR(0.0, position.y(), tol);
+  auto position = comFrame->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, position.x(), tol);
+  EXPECT_NEAR(0.0, position.y(), tol);
   // EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
 }
 
@@ -268,8 +268,8 @@ TEST(Issue000, WithRevoluteJoint)
       << poseCOM.translation().transpose() << std::endl;
   }
 
-  // auto position = comFrame->getWorldTransform().translation();
-  // EXPECT_NEAR(0.0, position.x(), tol);
-  // EXPECT_NEAR(0.0, position.y(), tol);
+  auto position = comFrame->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, position.x(), tol);
+  EXPECT_NEAR(0.0, position.y(), tol);
   // EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
 }
