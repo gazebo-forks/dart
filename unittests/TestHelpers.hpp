@@ -269,12 +269,12 @@ SkeletonPtr createNLinkRobot(int _n, Vector3d dim, TypeOfDOF type,
   robot->disableSelfCollisionCheck();
 
   // Create the first link, the joint with the ground and its shape
-  BodyNode::Properties node(BodyNode::AspectProperties("link1"));
+  BodyNode::Properties node(BodyNode::AspectProperties("link0"));
   node.mInertia.setLocalCOM(Vector3d(0.0, 0.0, dim(2)/2.0));
   std::shared_ptr<Shape> shape(new BoxShape(dim));
 
   std::pair<Joint*, BodyNode*> pair1 = add1DofJoint(
-        robot, nullptr, node, "joint1", 0.0, -constantsd::pi(), constantsd::pi(), type);
+        robot, nullptr, node, "joint0", 0.0, -constantsd::pi(), constantsd::pi(), type);
 
   Joint* joint = pair1.first;
   joint->setDampingCoefficient(0, 0.01);

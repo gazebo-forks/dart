@@ -2022,6 +2022,37 @@ void GenericJoint<ConfigSpaceT>::addChildBiasForceToDynamic(
 
 //==============================================================================
 template <class ConfigSpaceT>
+void GenericJoint<ConfigSpaceT>::addChildCoriolisForceTo(
+    Eigen::Vector6d& parentCoriolisForce,
+    const Eigen::Matrix6d& childArtInertia,
+    const Eigen::Vector6d& childCoriolisForce,
+    const Eigen::Vector6d& childPartialAcc)
+{
+  // Compute beta
+  const Eigen::Vector6d beta
+      = childCoriolisForce
+        + childArtInertia
+              * (childPartialAcc
+                 - getRelativeJacobianStatic() * getInvProjArtInertiaImplicit()
+                       * getRelativeJacobianStatic().transpose()
+                       * childCoriolisForce);
+
+  //    Eigen::Vector6d beta
+  //        = _childBiasForce;
+  //    beta.noalias() += _childArtInertia * _childPartialAcc;
+  //    beta.noalias() += _childArtInertia *  mJacobian *
+  //    getInvProjArtInertiaImplicit() * mTotalForce;
+
+  // Verification
+  assert(!math::isNan(beta));
+
+  // Add child body's bias force to parent body's bias force. Note that mT
+  // should be updated.
+  parentCoriolisForce += math::dAdInvT(this->getRelativeTransform(), beta);
+}
+
+//==============================================================================
+template <class ConfigSpaceT>
 void GenericJoint<ConfigSpaceT>::addChildBiasForceToKinematic(
     Eigen::Vector6d& _parentBiasForce,
     const Eigen::Matrix6d& childArtInertia,

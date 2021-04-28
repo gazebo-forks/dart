@@ -867,6 +867,14 @@ protected:
       const Eigen::Vector6d& _childPartialAcc)
       = 0;
 
+  /// Add child's coriolis force to parent's one
+  virtual void addChildCoriolisForceTo(
+      Eigen::Vector6d& _parentCoriolisForce,
+      const Eigen::Matrix6d& _childArtInertia,
+      const Eigen::Vector6d& _childCoriolisForce,
+      const Eigen::Vector6d& _childPartialAcc)
+      = 0;
+
   /// Add child's bias impulse to parent's one
   virtual void addChildBiasImpulseTo(
       Eigen::Vector6d& _parentBiasImpulse,
