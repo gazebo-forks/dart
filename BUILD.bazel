@@ -4,6 +4,7 @@ load(
     "IGNITION_ROOT",
     "IGNITION_VISIBILITY",
     "generate_include_header",
+    "cmake_configure_file",
 )
 
 package(
@@ -36,6 +37,30 @@ generated_includes = [
     )
     for subdir in generated_includes
 ]
+
+cmake_configure_file(
+    name = "config",
+    src = "dart/config.hpp.in",
+    out = "dart/config.hpp",
+    cmakelists = ["dart/CMakeLists.txt"],
+    defines = [
+        "PROJECT_NAME=dart",
+        "DART_MAJOR_VERSION=6",
+        "DART_MINOR_VERSION=10",
+        "DART_PATCH_VERSION=10",
+        "DART_VERSION=6.10.0",
+        "DART_PKG_DESC='Dynamic Animation and Robotics Toolkit'",
+        "BUILD_TYPE_RELEASE=1",
+        "HAVE_NLOPT=1",
+        "HAVE_ODE=1",
+        "DART_ENABLE_SIMD=1",
+        "CMAKE_SOURCE_DIR=dart",
+        "CMAKE_INSTALL_PREFIX=.",
+        "DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH=dart",
+        "ASSIMP_AISCENE_CTOR_DTOR_DEFINED=1",
+        "ASSIMP_AIMATERIAL_CTOR_DTOR_DEFINED=1",
+    ]
+)
 
 # collision has two subdirectories with generated includes unlike the above
 # so treat it as a separate case
@@ -116,13 +141,14 @@ cc_library(
         "dart/common/detail/*.cpp",
         "dart/common/*.hpp",
         "dart/common/detail/*.hpp",
-        "dart/config.hpp",
     ]) + [
         "dart/common/common.hpp",
+        "dart/config.hpp",
     ],
     hdrs = glob([
         "dart/common/*.hpp",
         "dart/common/detail/*.hpp",
+    ] + [
         "dart/config.hpp",
     ]),
     includes = ["."],
@@ -436,17 +462,5 @@ cc_binary(
     includes = ["dart"],
     deps = [
         ":dart",
-        ":dart-collision",
-        ":dart-common",
-        ":dart-constraint",
-        ":dart-dynamics",
-        ":dart-external",
-        ":dart-gui",
-        ":dart-integration",
-        ":dart-lcpsolver",
-        ":dart-math",
-        ":dart-optimizer",
-        ":dart-simulation",
-        ":dart-utils",
     ],
 )
