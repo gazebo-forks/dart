@@ -161,6 +161,9 @@ public:
   DART_COMMON_SET_GET_ASPECT_PROPERTY( double, SlipCompliance )
   // void setSlipCompliance(const double& value);
   // const double& getSlipCompliance() const;
+  // Support API that matches upstream 6.10.0 release as well
+  void setPrimarySlipCompliance(const double& value);
+  const double& getPrimarySlipCompliance() const;
   DART_COMMON_SET_GET_ASPECT_PROPERTY( double, SecondarySlipCompliance )
   // void setSecondarySlipCompliance(const double& value);
   // const double& getSecondarySlipCompliance() const;
