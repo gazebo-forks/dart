@@ -35,10 +35,13 @@
 
 #include "TestHelpers.hpp"
 
+#include "dart/utils/sdf/SdfParser.hpp"
+
 using namespace dart::math;
 using namespace dart::collision;
 using namespace dart::dynamics;
 using namespace dart::simulation;
+using namespace dart::utils;
 
 //==============================================================================
 TEST(Issue1193, AngularVelAdd)
@@ -259,7 +262,7 @@ TEST(Issue000, WithRevoluteJoint)
   // pair.second->addExtForce({0,0, -200000});
   for (int i = 0; i < g_iters; ++i)
   {
-    joint->setCommand(0, 1000.0);
+    joint->setCommand(0, 0.1);
     // joint->setCommand(0, 10.0);
     world->step();
     auto pose = rootBn->getWorldTransform();
@@ -272,4 +275,38 @@ TEST(Issue000, WithRevoluteJoint)
   EXPECT_NEAR(0.0, position.x(), tol);
   EXPECT_NEAR(0.0, position.y(), tol);
   // EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
+}
+
+TEST(Issue000, WithRevoluteJointSdf)
+{
+  auto world = SdfParser::readWorld(
+      "dart://sample/sdf/test/issue1193_revolute_test.sdf");
+  ASSERT_TRUE(world != nullptr);
+  const double dt = 0.001;
+  world->setTimeStep(dt);
+
+  SkeletonPtr skel = world->getSkeleton(0);
+  auto rootBn = skel->getRootBodyNode();
+
+  Eigen::Isometry3d comPose;
+  comPose = Eigen::Translation3d(0, 0, -2);
+  auto comFrame = SimpleFrame::createShared(rootBn, "CombinedCOM", comPose);
+
+  auto *joint = skel->getJoint("revJoint");
+  ASSERT_NE(nullptr, joint);
+
+  for (int i = 0; i < g_iters; ++i)
+  {
+    joint->setCommand(0, 0.1);
+    // joint->setCommand(0, 10.0);
+    world->step();
+    auto pose = rootBn->getWorldTransform();
+    auto poseCOM = comFrame->getWorldTransform();
+    std::cout << i << " " << pose.translation().transpose() << "\t"
+      << poseCOM.translation().transpose() << std::endl;
+  }
+
+  auto position = comFrame->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, position.x(), tol);
+  EXPECT_NEAR(0.0, position.y(), tol);
 }
