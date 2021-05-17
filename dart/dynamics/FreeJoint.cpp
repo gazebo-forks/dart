@@ -637,6 +637,14 @@ void FreeJoint::integrateVelocities(double _dt)
   // Acceleration with additional term to take into account changing linear
   // velocity in the inertial frame.
   Eigen::Vector6d accelWithInertialTerm = getAccelerationsStatic();
+  auto* bn = getChildBodyNode();
+  Eigen::Isometry3d Tcom;
+  // Transform from joint to center of mass of child body
+  Tcom = Eigen::Translation3d(
+      Joint::mAspectProperties.mT_ChildBodyToJoint.inverse()
+      * computeTreeCom(bn));
+  auto velAtCom = math::AdT(Tcom.inverse(), vel);
+  auto accelAtCom = math::AdT(Tcom.inverse(), accelWithInertialTerm);
 
   const Eigen::Matrix6d& mIProj
       = getRelativeJacobianStatic().transpose()
@@ -645,31 +653,30 @@ void FreeJoint::integrateVelocities(double _dt)
   // Remove Coriolis term because the velocity will be updated when integrating
   // position and that will account for the rotation of the frame.
   const Eigen::Vector6d biasTerm = (artInvProjI * math::dad(vel, mIProj * vel));
+  // const Eigen::Vector6d biasTerm
+  //     = (artInvProjI
+  //        * math::dad(vel, getChildBodyNode()->getSpatialInertia() * vel));
   // const Eigen::Vector6d childCoriolisAccel = artInvProjI * getChildBodyNode()->getCoriolisForce();
   // const Eigen::Vector6d childBiasAccel = -artInvProjI * getChildBodyNode()->getBiasForce();
-  // const Eigen::Vector3d omegaVelTerm = -vel.head<3>().cross(vel.tail<3>());
+  const Eigen::Vector3d omegaVelTerm = -velAtCom.head<3>().cross(velAtCom.tail<3>());
 
   // std::cout << "accel: " << accelWithInertialTerm.transpose() << "\n";
 
   // accelWithInertialTerm -= biasTerm;
-  accelWithInertialTerm.tail<3>() -= biasTerm.tail<3>();
+  // accelWithInertialTerm.tail<3>() -= biasTerm.tail<3>();
 
-  // accelWithInertialTerm -= totalBiasAcceleration;
-  // accelWithInertialTerm -= childBiasAccel;
-  // accelWithInertialTerm.tail<3>() -= childBiasAccel.tail<3>();
-  // accelWithInertialTerm.tail<3>() -= childCoriolisAccel.tail<3>();
-  // accelWithInertialTerm.tail<3>() -= omegaVelTerm;
-  // accelWithInertialTerm -= biasTermFreeJointInertia;
-  // accelWithInertialTerm.tail<3>() -= biasTermFreeJointInertia.tail<3>();
+  accelWithInertialTerm.tail<3>() -= omegaVelTerm;
+  // accelAtCom.tail<3>() -= omegaVelTerm;
+  // accelWithInertialTerm = math::AdT(Tcom, accelAtCom);
+
   // std::cout << "accel After: " << accelWithInertialTerm.transpose() << "\n";
-  // std::cout << "biasTerms:\n"
-  //           << "biasTerm: " << biasTerm.transpose() << "\n"
+  // std::cout << "biasTerm: " << biasTerm.transpose() << "\n"
   //           << "totalBiasAcceleration: " << totalBiasAcceleration.transpose() << "\n"
   //           << "childCoriolisAccel: " << childCoriolisAccel.transpose() << "\n"
   //           << "childBiasAccel: " << childBiasAccel.transpose()<< "\n"
-  //           << "omegaVelTerm: " << omegaVelTerm.transpose() << "\n"
+            // << "omegaVelTerm: " << omegaVelTerm.transpose()
   //           << "biasTermFreeJointInertia: " << biasTermFreeJointInertia.transpose()
-  //           << std::endl;
+            // << std::endl;
 
   setVelocitiesStatic(math::integrateVelocity<math::SE3Space>(
       getVelocitiesStatic(), accelWithInertialTerm, _dt));

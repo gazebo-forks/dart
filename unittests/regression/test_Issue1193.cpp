@@ -310,3 +310,41 @@ TEST(Issue000, WithRevoluteJointSdf)
   EXPECT_NEAR(0.0, position.x(), tol);
   EXPECT_NEAR(0.0, position.y(), tol);
 }
+
+TEST(Issue000, WithRevoluteJointWithOffsetSdf)
+{
+  auto world = SdfParser::readWorld(
+      "dart://sample/sdf/test/issue1193_revolute_with_offset_test.sdf");
+  ASSERT_TRUE(world != nullptr);
+  const double dt = 0.001;
+  world->setTimeStep(dt);
+
+  SkeletonPtr skel = world->getSkeleton(0);
+  auto rootBn = skel->getRootBodyNode();
+
+  Eigen::Isometry3d comPose;
+  comPose = Eigen::Translation3d(0, 0, -2);
+  auto comFrame = SimpleFrame::createShared(rootBn, "CombinedCOM", comPose);
+
+  auto *joint = skel->getJoint("revJoint");
+  ASSERT_NE(nullptr, joint);
+
+  Eigen::Vector3d maxDeviationFromOrigin = Eigen::Vector3d::Zero();
+  for (int i = 0; i < g_iters; ++i)
+  {
+    joint->setCommand(0, 10);
+    // joint->setCommand(0, 10.0);
+    world->step();
+    auto pose = rootBn->getWorldTransform();
+    auto poseCOM = comFrame->getWorldTransform();
+    // std::cout << i << " " << poseCOM.translation().transpose() << std::endl;
+    maxDeviationFromOrigin
+        = poseCOM.translation().cwiseAbs().cwiseMax(maxDeviationFromOrigin);
+    std::cout << i << " " << maxDeviationFromOrigin.transpose() << "\n";
+  }
+
+  auto position = comFrame->getWorldTransform().translation();
+  EXPECT_NEAR(0.0, maxDeviationFromOrigin.x(), tol);
+  EXPECT_NEAR(2.0, maxDeviationFromOrigin.y(), tol);
+  EXPECT_NEAR(0.0, maxDeviationFromOrigin.z(), tol);
+}
