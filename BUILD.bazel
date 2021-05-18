@@ -51,6 +51,7 @@ cmake_configure_file(
         "DART_VERSION=6.10.0",
         "DART_PKG_DESC='Dynamic Animation and Robotics Toolkit'",
         "BUILD_TYPE_RELEASE=1",
+        "HAVE_BULLET=1",
         "HAVE_NLOPT=1",
         "HAVE_ODE=1",
         "DART_ENABLE_SIMD=1",
@@ -73,6 +74,14 @@ generate_include_header(
 )
 
 generate_include_header(
+    name = "collision_bullet_genrule",
+    out = "dart/collision/bullet/bullet.hpp",
+    hdrs = glob([
+        "dart/collision/bullet/*.hpp",
+    ]),
+)
+
+generate_include_header(
     name = "collision_dart_genrule",
     out = "dart/collision/dart/dart.hpp",
     hdrs = glob([
@@ -86,6 +95,7 @@ generate_include_header(
     hdrs = glob([
         "dart/collision/*.hpp",
     ]) + [
+        "dart/collision/dart/bullet.hpp",
         "dart/collision/dart/dart.hpp",
         "dart/collision/fcl/fcl.hpp",
     ],
@@ -201,16 +211,11 @@ cc_library(
     srcs = glob([
         "dart/collision/*.cpp",
         "dart/collision/detail/*.cpp",
-        "dart/collision/*.hpp",
-        "dart/collision/detail/*.hpp",
-    ]) + [
-        "dart/collision/collision.hpp",
-        "dart/collision/fcl/fcl.hpp",
-        "dart/collision/dart/dart.hpp",
-    ],
+    ]),
     hdrs = glob([
         "dart/collision/*.hpp",
         "dart/collision/detail/*.hpp",
+        "dart/collision/collision.hpp",
     ]),
     deps = [
         ":dart-dynamics",
@@ -223,12 +228,11 @@ cc_library(
     srcs = glob([
         "dart/collision/ode/*.cpp",
         "dart/collision/ode/detail/*.cpp",
-        "dart/collision/ode/*.hpp",
-        "dart/collision/ode/detail/*.hpp",
     ]),
     hdrs = glob([
         "dart/collision/ode/*.hpp",
         "dart/collision/ode/detail/*.hpp",
+        "dart/collision/ode/ode.hpp",
     ]),
     deps = [
         ":dart-collision-core",
@@ -240,13 +244,32 @@ cc_library(
 )
 
 cc_library(
+    name = "dart-collision-bullet",
+    srcs = glob([
+        "dart/collision/bullet/*.cpp",
+        "dart/collision/bullet/detail/*.cpp",
+    ]),
+    hdrs = glob([
+        "dart/collision/bullet/*.hpp",
+        "dart/collision/bullet/detail/*.hpp",
+        "dart/collision/bullet/bullet.hpp",
+    ]),
+    deps = [
+        ":dart-collision-core",
+        ":dart-dynamics",
+        ":dart-math",
+        "@bullet",
+    ],
+)
+
+cc_library(
     name = "dart-collision-fcl",
     srcs = glob([
         "dart/collision/fcl/*.cpp",
-        "dart/collision/fcl/*.hpp",
     ]),
     hdrs = glob([
         "dart/collision/fcl/*.hpp",
+        "dart/collision/fcl/fcl.hpp",
     ]),
     deps = [
         ":dart-collision-core",
@@ -275,6 +298,7 @@ cc_library(
 cc_library(
     name = "dart-collision",
     deps = [
+        ":dart-collision-bullet",
         ":dart-collision-core",
         ":dart-collision-dart",
         ":dart-collision-fcl",
