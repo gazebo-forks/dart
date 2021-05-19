@@ -74,7 +74,7 @@ After updating the changelog, the directory is ready to generate the source pack
 
  1. Upload source package (source package files are located in the parent directory `..`)
     ```
-    dput ppa:openrobotics/dartsim-openrobotics-testing ../dart6_*_source.changes`
+    dput ppa:openrobotics/dartsim-openrobotics-testing ../dart6_*_source.changes
     ```
 
  1. If everything is correct, update the repository
