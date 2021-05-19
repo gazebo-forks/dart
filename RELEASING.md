@@ -52,7 +52,7 @@ cd dart
 git checkout release-6.10
 ```
 
-### Update changelog, push changes
+### Update changelog
 
  1. ```
     gbp dch --ignore-branch --no-git-author -D <UBUNTU_DISTRO> --force-distribution --new-version=6.10.0~osrf6~$(date +%Y-%m-%d)~$(git rev-parse HEAD) --commit-msg 'New OSRF testing release' --commit
