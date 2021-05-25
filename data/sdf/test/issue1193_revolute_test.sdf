@@ -7,6 +7,7 @@
       <max_step_size>0.001000</max_step_size>
     </physics>
     <model name="M">
+      <pose>1 1 0 0 0 0</pose>
       <link name="link1">
         <pose>0 0 2 0 0 0</pose>
         <inertial>

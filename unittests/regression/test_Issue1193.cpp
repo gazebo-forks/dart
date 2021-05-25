@@ -82,8 +82,29 @@ TEST(Issue1193, AngularVelAdd)
 const double tol = 1e-5;
 const int g_iters = 100000;
 
+Eigen::Vector3d computeWorldAngularMomentum(const SkeletonPtr skel)
+{
+  Eigen::Vector3d angMomentum = Eigen::Vector3d::Zero();
+  for(auto *bn: skel->getBodyNodes())
+  {
+    angMomentum += dart::math::dAdInvT(
+                       bn->getWorldTransform(),
+                       bn->getSpatialInertia() * bn->getSpatialVelocity())
+                       .head<3>();
+    // Eigen::Isometry3d pose = bn->getWorldTransform();
+    // Eigen::Matrix3d Icom = bn->getInertia().getMoment();
+    // Eigen::Matrix3d Io = pose.rotation() * Icom * pose.rotation().transpose();
 
-TEST(Issue000, SingleBody)
+    // Eigen::Vector3d angVelWorld = bn->getAngularVelocity();
+    // Eigen::Vector3d linVelWorld = bn->getLinearVelocity();
+    // angMomentum += Io * angVelWorld
+    //                + pose.translation().cross(bn->getMass() * linVelWorld);
+  }
+  return angMomentum;
+}
+
+
+TEST(Issue1193, SingleBody)
 {
   WorldPtr world = World::create();
   const double dt = 0.001;
@@ -98,7 +119,7 @@ TEST(Issue000, SingleBody)
 
   rootBn->getParentJoint()->setVelocities(vels);
 
-  rootBn->addExtTorque({0, 50, 0});
+  // rootBn->addExtTorque({0, 50, 0});
   for (int i = 0; i < g_iters; ++i)
   {
     world->step();
@@ -111,7 +132,7 @@ TEST(Issue000, SingleBody)
   EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
 }
 
-TEST(Issue000, SingleBodyWithOffDiagonalMoi)
+TEST(Issue1193, SingleBodyWithOffDiagonalMoi)
 {
   WorldPtr world = World::create();
   const double dt = 0.001;
@@ -141,7 +162,7 @@ TEST(Issue000, SingleBodyWithOffDiagonalMoi)
   EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
 }
 
-TEST(Issue000, SingleBodyWithJointOffset)
+TEST(Issue1193, SingleBodyWithJointOffset)
 {
   WorldPtr world = World::create();
   const double dt = 0.0001;
@@ -166,8 +187,8 @@ TEST(Issue000, SingleBodyWithJointOffset)
   for (int i = 0; i < g_iters; ++i)
   {
     world->step();
-    // auto pose = rootBn->getWorldTransform();
-    // std::cout << i << " " << pose.translation().transpose() << std::endl;
+    auto pose = rootBn->getWorldTransform();
+    std::cout << i << " " << pose.translation().transpose() << std::endl;
   }
 
   auto position = rootBn->getWorldTransform().translation();
@@ -176,8 +197,33 @@ TEST(Issue000, SingleBodyWithJointOffset)
   EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
 }
 
+TEST(Issue1193, SingleBodyWithCOMOffset)
+{
+  WorldPtr world = World::create();
+  const double dt = 0.001;
+  world->setTimeStep(dt);
+  world->setGravity(Vector3d::Zero());
+  SkeletonPtr skel = createBox({1, 1, 1});
+  world->addSkeleton(skel);
+  auto rootBn = skel->getRootBodyNode();
+  rootBn->setMomentOfInertia(1.0/6, 1.0/6.0, 1.0/6.0, 0, 0, 0);
+  // rootBn->setLocalCOM({1, 5, 8});
+  rootBn->setLocalCOM({0, 0, 8});
+
+
+  rootBn->addExtForce({10, 0, 0});
+  for (int i = 0; i < g_iters; ++i)
+  {
+    world->step();
+    auto pose = rootBn->getWorldTransform();
+    auto comPos = rootBn->getCOM();
+    auto comLinearVel = rootBn->getCOMLinearVelocity();
+    std::cout << i << " " << comPos.transpose() << " " << comLinearVel.transpose() << std::endl;
+  }
+}
+
 //==============================================================================
-TEST(Issue000, WithFixedJoint)
+TEST(Issue1193, WithFixedJoint)
 {
   WorldPtr world = World::create();
   const double dt = 0.001;
@@ -224,7 +270,7 @@ TEST(Issue000, WithFixedJoint)
   // EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
 }
 
-TEST(Issue000, WithRevoluteJoint)
+TEST(Issue1193, WithRevoluteJoint)
 {
   WorldPtr world = World::create();
   const double dt = 0.001;
@@ -277,7 +323,7 @@ TEST(Issue000, WithRevoluteJoint)
   // EXPECT_NEAR(g_iters * dt * vels[5], position.z(), tol);
 }
 
-TEST(Issue000, WithRevoluteJointSdf)
+TEST(Issue1193, WithRevoluteJointSdf)
 {
   auto world = SdfParser::readWorld(
       "dart://sample/sdf/test/issue1193_revolute_test.sdf");
@@ -297,8 +343,8 @@ TEST(Issue000, WithRevoluteJointSdf)
 
   for (int i = 0; i < g_iters; ++i)
   {
-    joint->setCommand(0, 0.1);
-    // joint->setCommand(0, 10.0);
+    // joint->setCommand(0, 0.1);
+    joint->setCommand(0, 10.0);
     world->step();
     auto pose = rootBn->getWorldTransform();
     auto poseCOM = comFrame->getWorldTransform();
@@ -311,36 +357,46 @@ TEST(Issue000, WithRevoluteJointSdf)
   EXPECT_NEAR(0.0, position.y(), tol);
 }
 
-TEST(Issue000, WithRevoluteJointWithOffsetSdf)
+TEST(Issue1193, WithRevoluteJointWithOffsetSdf)
 {
   auto world = SdfParser::readWorld(
       "dart://sample/sdf/test/issue1193_revolute_with_offset_test.sdf");
   ASSERT_TRUE(world != nullptr);
-  const double dt = 0.001;
+  const double dt = 0.0001;
   world->setTimeStep(dt);
+  world->setGravity(Vector3d::Zero());
 
   SkeletonPtr skel = world->getSkeleton(0);
-  auto rootBn = skel->getRootBodyNode();
+  auto link1 = skel->getBodyNode("link1");
 
   Eigen::Isometry3d comPose;
   comPose = Eigen::Translation3d(0, 0, -2);
-  auto comFrame = SimpleFrame::createShared(rootBn, "CombinedCOM", comPose);
+  auto comFrame = SimpleFrame::createShared(link1, "CombinedCOM", comPose);
 
   auto *joint = skel->getJoint("revJoint");
   ASSERT_NE(nullptr, joint);
 
   Eigen::Vector3d maxDeviationFromOrigin = Eigen::Vector3d::Zero();
-  for (int i = 0; i < g_iters; ++i)
+  // link1->getParentJoint()->setVelocities(compose({0, 25, 0}, {0, 0, -100}));
+
+  joint->setForce(0, 100.0);
+  world->step();
+  Eigen::Vector3d h0 = computeWorldAngularMomentum(skel);
+  double h0Mag = h0.norm();
+  std::cout <<  "H0: " << h0.transpose() << std::endl;
+  for (int i = 1; i < 1000*g_iters; ++i)
   {
-    joint->setCommand(0, 10);
     // joint->setCommand(0, 10.0);
     world->step();
-    auto pose = rootBn->getWorldTransform();
+    auto pose = link1->getWorldTransform();
     auto poseCOM = comFrame->getWorldTransform();
     // std::cout << i << " " << poseCOM.translation().transpose() << std::endl;
     maxDeviationFromOrigin
         = poseCOM.translation().cwiseAbs().cwiseMax(maxDeviationFromOrigin);
-    std::cout << i << " " << maxDeviationFromOrigin.transpose() << "\n";
+    // std::cout << i << " " << maxDeviationFromOrigin.transpose() << "\n";
+
+    Eigen::Vector3d hNext = computeWorldAngularMomentum(skel);
+    std::cout << i << " " << (hNext - h0).transpose() / h0Mag << std::endl;
   }
 
   auto position = comFrame->getWorldTransform().translation();
