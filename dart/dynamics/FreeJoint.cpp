@@ -35,7 +35,6 @@
 #include <string>
 
 #include "dart/dynamics/DegreeOfFreedom.hpp"
-#include "dart/math/ConfigurationSpace.hpp"
 #include "dart/math/Geometry.hpp"
 #include "dart/math/Helpers.hpp"
 
@@ -599,7 +598,6 @@ void FreeJoint::integratePositions(double _dt)
   setPositionsStatic(convertToPositions(Qnext));
 }
 
-
 //==============================================================================
 void FreeJoint::integrateVelocities(double _dt)
 {
@@ -625,6 +623,7 @@ void FreeJoint::integrateVelocities(double _dt)
   setAccelerationsStatic(accel);
 }
 
+//==============================================================================
 void FreeJoint::updateConstrainedTerms(double timeStep)
 {
   const double invTimeStep = 1.0 / timeStep;
