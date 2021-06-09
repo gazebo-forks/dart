@@ -41,9 +41,9 @@ The first step will create a source package from DART git checkout in the local
 system and upload it to Open Robotics PPA.
 
 **One Ubuntu distribution needs to be released at a time**. The information
-about target distribution (i.e Focal) goes only in the Changelog entry. To
-release multiple distribution, repeat this step 1 changing the changelog entry
-and uploading the new source package to the PPA.
+about target distribution (start with bionic) goes only in the Changelog entry. To
+release multiple distribution, repeat this step 1 changing the changelog entry 
+(focal is also supported) and uploading the new source package to the PPA.
 
 A copy of [this fork](https://github.com/ignition-forks/dart) is required to be in the system.
 
@@ -55,7 +55,7 @@ git checkout release-6.10
 ### Update changelog
 
  1. ```
-    gbp dch --ignore-branch --no-git-author -D <UBUNTU_DISTRO> --force-distribution --new-version=6.10.0~osrf6~$(date +%Y-%m-%d)~$(git rev-parse HEAD) --commit-msg 'New OSRF testing release' --commit
+    DISTRO=<UBUNTU_DISTRO> gbp dch --ignore-branch --no-git-author -D $DISTRO --force-distribution --new-version=6.10.0~osrf6~$(date +%Y%m%d)~$DISTRO~$(git rev-parse HEAD) --commit-msg 'New OSRF testing release' --commit
     ```
     (change UBUNTU_DISTRO by the target distribution name, i.e: focal. Check changelog by running `git diff HEAD~1`)
 
