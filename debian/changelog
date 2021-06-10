@@ -1,3 +1,19 @@
+dart6 (6.10.0~osrf19~20210610~bionic~175596b511adb55d831c0c3401ef50e2cb96a6f3) bionic; urgency=medium
+
+  [ Jose Luis Rivero ]
+  * Fix PPA URI in Releasing
+
+  [ Michael Carroll ]
+  * Fix bazel config file generation for 6.10 (#25)
+
+  [ Addisu Z. Taddese ]
+  * Fix FreeJoint velocity and position integration for articulated bodies (#28)
+
+  [ Jose Luis Rivero ]
+  * Include DISTRO in version when releasing to avoid problems between distributions (#29)
+
+ -- Addisu Z. Taddese <addisu@openrobotics.org>  Thu, 10 Jun 2021 09:59:56 -0500
+
 dart6 (6.10.0~osrf6~2021-05-19~aa14d45de93afc814f19ccb6cedcd5157d1dbe6d) bionic; urgency=medium
 
   * New OSRF release
