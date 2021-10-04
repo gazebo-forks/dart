@@ -61,11 +61,24 @@ namespace constraint {
 
 using namespace dynamics;
 
-// These two globals are a hack made to retain ABI compatibility.
+// This global and the function that immediately follows are a hack made to
+// retain ABI compatibility.
 // TODO(anyone): Revert e95a6 in a future ABI-breaking version.
 std::mutex gContactSurfaceHandlersMutex;
-std::unordered_map<const ConstraintSolver*, ContactSurfaceHandlerPtr>
-    gContactSurfaceHandlers;
+
+std::unordered_map<const ConstraintSolver*, ContactSurfaceHandlerPtr>&
+getContactSurfaceHandlers()
+{
+  // This object is used as a global variable in this file. Since the type has a
+  // non-trivial destructor, we avoid making it a global. Instead, we use the
+  // construct-on-first-use idiom where we allocate it here and never delete it
+  // per the Google style and C++ Core Guidelines.
+  // https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use
+  static auto& contactSurfaceHandlers
+      = *new std::
+            unordered_map<const ConstraintSolver*, ContactSurfaceHandlerPtr>;
+  return contactSurfaceHandlers;
+}
 
 //==============================================================================
 ConstraintSolver::ConstraintSolver(double timeStep)
@@ -87,7 +100,7 @@ ConstraintSolver::ConstraintSolver(double timeStep)
 
   {
     std::lock_guard<std::mutex> lock(gContactSurfaceHandlersMutex);
-    gContactSurfaceHandlers[this] =
+    getContactSurfaceHandlers()[this] =
         std::make_shared<DefaultContactSurfaceHandler>();
   }
 }
@@ -110,7 +123,7 @@ ConstraintSolver::ConstraintSolver()
 
   {
     std::lock_guard<std::mutex> lock(gContactSurfaceHandlersMutex);
-    gContactSurfaceHandlers[this] =
+    getContactSurfaceHandlers()[this] =
         std::make_shared<DefaultContactSurfaceHandler>();
   }
 }
@@ -119,7 +132,7 @@ ConstraintSolver::ConstraintSolver()
 ConstraintSolver::~ConstraintSolver()
 {
   std::lock_guard<std::mutex> lock(gContactSurfaceHandlersMutex);
-  gContactSurfaceHandlers.erase(this);
+  getContactSurfaceHandlers().erase(this);
 }
 
 //==============================================================================
@@ -420,7 +433,7 @@ void ConstraintSolver::setFromOtherConstraintSolver(
 
   {
     std::lock_guard<std::mutex> lock(gContactSurfaceHandlersMutex);
-    gContactSurfaceHandlers[this] = gContactSurfaceHandlers[&other];
+    getContactSurfaceHandlers()[this] = getContactSurfaceHandlers()[&other];
   }
 }
 
@@ -591,8 +604,9 @@ void ConstraintSolver::updateConstraints()
       if (it != contactPairMap.end())
         numContacts = it->second;
 
-      auto contactConstraint = gContactSurfaceHandlers[this]->createConstraint(
-        *contact, numContacts, mTimeStep);
+      auto contactConstraint
+          = getContactSurfaceHandlers()[this]->createConstraint(
+              *contact, numContacts, mTimeStep);
 
       mContactConstraints.push_back(contactConstraint);
 
@@ -790,7 +804,7 @@ ConstraintSolver::getLastContactSurfaceHandler() const
 {
   {
     std::lock_guard<std::mutex> lock(gContactSurfaceHandlersMutex);
-    return gContactSurfaceHandlers[this];
+    return getContactSurfaceHandlers()[this];
   }
 }
 
@@ -800,8 +814,8 @@ void ConstraintSolver::addContactSurfaceHandler(
 {
   {
     std::lock_guard<std::mutex> lock(gContactSurfaceHandlersMutex);
-    handler->setParent(gContactSurfaceHandlers[this]);
-    gContactSurfaceHandlers[this] = std::move(handler);
+    handler->setParent(getContactSurfaceHandlers()[this]);
+    getContactSurfaceHandlers()[this] = std::move(handler);
   }
 }
 
@@ -811,7 +825,7 @@ bool ConstraintSolver::removeContactSurfaceHandler(
 {
   bool found = false;
   std::lock_guard<std::mutex> lock(gContactSurfaceHandlersMutex);
-  ContactSurfaceHandlerPtr current = gContactSurfaceHandlers[this];
+  ContactSurfaceHandlerPtr current = getContactSurfaceHandlers()[this];
   ContactSurfaceHandlerPtr previous = nullptr;
   while (current != nullptr)
   {
@@ -820,7 +834,7 @@ bool ConstraintSolver::removeContactSurfaceHandler(
       if (previous != nullptr)
         previous->mParent = current->mParent;
       else
-        gContactSurfaceHandlers[this] = current->mParent;
+        getContactSurfaceHandlers()[this] = current->mParent;
       found = true;
       break;
     }
@@ -828,7 +842,7 @@ bool ConstraintSolver::removeContactSurfaceHandler(
     current = current->mParent;
   }
 
-  if (gContactSurfaceHandlers[this] == nullptr)
+  if (getContactSurfaceHandlers()[this] == nullptr)
     dterr << "No contact surface handler remained. This is an error. Add at "
           << "least DefaultContactSurfaceHandler." << std::endl;
 
