@@ -59,11 +59,23 @@ double ContactConstraint::mErrorReductionParameter = DART_ERP;
 double ContactConstraint::mMaxErrorReductionVelocity = DART_MAX_ERV;
 double ContactConstraint::mConstraintForceMixing = DART_CFM;
 
-// These two globals are a hack made to retain ABI compatibility.
+// This global and the function that immediately follows are a hack made to
+// retain ABI compatibility.
 // TODO(anyone): Revert e95a6 in a future ABI-breaking version.
 std::mutex gContactSurfaceMotionVelocitiesMutex;
-std::unordered_map<ContactConstraint*, Eigen::Vector3d>
-    gContactSurfaceMotionVelocities;
+
+std::unordered_map<ContactConstraint*, Eigen::Vector3d>&
+getContactSurfaceMotionVelocities()
+{
+  // This object is used as a global variable in this file. Since the type has a
+  // non-trivial destructor, we avoid making it a global. Instead, we use the
+  // construct-on-first-use idiom where we allocate it here and never delete it
+  // per the Google style and C++ Core Guidelines.
+  // https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use
+  static auto& contactSurfaceMotionVelocities
+      = *new std::unordered_map<ContactConstraint*, Eigen::Vector3d>;
+  return contactSurfaceMotionVelocities;
+}
 
 //==============================================================================
 ContactConstraint::ContactConstraint(
@@ -136,7 +148,7 @@ ContactConstraint::ContactConstraint(
 
   {
     std::lock_guard<std::mutex> lock(gContactSurfaceMotionVelocitiesMutex);
-    gContactSurfaceMotionVelocities[this] =
+    getContactSurfaceMotionVelocities()[this] =
         contactSurfaceParams.mContactSurfaceMotionVelocity;
   }
 
@@ -248,7 +260,7 @@ ContactConstraint::ContactConstraint(
 ContactConstraint::~ContactConstraint()
 {
   std::lock_guard<std::mutex> lock(gContactSurfaceMotionVelocitiesMutex);
-  gContactSurfaceMotionVelocities.erase(this);
+  getContactSurfaceMotionVelocities().erase(this);
 }
 
 //==============================================================================
@@ -431,7 +443,7 @@ void ContactConstraint::getInformation(ConstraintInfo* info)
     info->b[0] += bouncingVelocity;
     {
       std::lock_guard<std::mutex> lock(gContactSurfaceMotionVelocitiesMutex);
-      const auto& surfaceVelocity = gContactSurfaceMotionVelocities[this];
+      const auto& surfaceVelocity = getContactSurfaceMotionVelocities()[this];
       info->b[0] += surfaceVelocity.x();
       info->b[1] += surfaceVelocity.y();
       info->b[2] += surfaceVelocity.z();
@@ -493,7 +505,7 @@ void ContactConstraint::getInformation(ConstraintInfo* info)
     info->b[0] += bouncingVelocity;
     {
       std::lock_guard<std::mutex> lock(gContactSurfaceMotionVelocitiesMutex);
-      info->b[0] += gContactSurfaceMotionVelocities[this].x();
+      info->b[0] += getContactSurfaceMotionVelocities()[this].x();
     }
 
     // TODO(JS): Initial guess
