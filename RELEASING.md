@@ -97,10 +97,13 @@ Create a PR against the `refactor_osrfbuild` branch in reprepro-updater reposito
 
 ### Run reprepro-importer Jenkins test
 
-Rebuild [this build](https://build.osrfoundation.org/job/reprepro_importer/33) of reprepro-importer 
-(note that the [paremeters](https://build.osrfoundation.org/job/reprepro_importer/33/parameters/) 
-set ubuntu_testing as repository which is a unofficial playground). Check the output to see the simulation
-of packages being imported (commit parameter is not set so no real action is done).
+Launch a build of [reprepro_importer](https://build.osrfoundation.org/job/reprepro_importer) with the
+following parameters:
+
+ * `RTOOLS_BRANCH` : `master`
+ * `UPLOAD_TO_REPO` : `ubuntu_testing` (playground repository)
+ * `REPREPRO_IMPORT_YAML_FILE` : `openrobotics_dart_packages_from_ppa.yaml`
+ * `COMMIT` : checked (to perform real import on the playground repo)
 
 ### Run reprepro-importer real import
 
