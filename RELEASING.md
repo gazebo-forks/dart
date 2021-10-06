@@ -56,7 +56,9 @@ git checkout release-6.10
 ### Update changelog
 
  1. ```
-     gbp dch --ignore-branch --no-git-author -D bionic --force-distribution --new-version=6.10.0~osrf6~$(date +%Y%m%d)~bionic~$(git rev-parse HEAD) --commit-msg 'New OSRF testing release' --commit
+     gbp dch --ignore-branch --no-git-author -D bionic --force-distribution \
+             --new-version=6.10.0-osrf<new-open-robotics-release-version>~$(date +%Y%m%d)~bionic~$(git rev-parse HEAD)  \
+             --commit-msg 'New OSRF testing release' --commit
     ```
 
 ### Releasing in Ubuntu PPA
