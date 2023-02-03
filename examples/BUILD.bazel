@@ -1,0 +1,13 @@
+load(
+    "@gz//bazel/skylark:build_defs.bzl",
+    "GZ_ROOT",
+)
+
+cc_binary(
+  name = "hello_world",
+  srcs = ["hello_world/main.cpp"],
+  deps = [
+    GZ_ROOT + "third_party/dart:dart",
+    GZ_ROOT + "third_party/dart:gui-osg",
+  ]
+)

@@ -56,13 +56,21 @@ common::ResourcePtr LocalResourceRetriever::retrieve(const Uri& _uri)
   else if (!_uri.mPath)
     return nullptr;
 
-  const auto resource
+  auto resource
       = std::make_shared<LocalResource>(_uri.getFilesystemPath());
 
   if (resource->isGood())
     return resource;
   else
-    return nullptr;
+  {
+    auto resource
+      = std::make_shared<LocalResource>("." + _uri.getFilesystemPath());
+
+    if (resource->isGood())
+      return resource;
+  }
+
+  return nullptr;
 }
 
 //==============================================================================

@@ -1,0 +1,323 @@
+load(
+    "@gz//bazel/skylark:build_defs.bzl",
+    "GZ_FEATURES",
+    "GZ_ROOT",
+    "GZ_VISIBILITY",
+    "cmake_configure_file",
+    "gz_configure_header",
+    "gz_export_header",
+    "gz_include_header",
+)
+
+package(
+    default_visibility = GZ_VISIBILITY,
+    features = GZ_FEATURES,
+)
+
+generated_includes = [
+    "dynamics",
+    "common",
+    "math",
+    "integration",
+    "lcpsolver",
+    "constraint",
+    "optimizer",
+    "simulation",
+]
+
+[
+    gz_include_header(
+        name = "%s_genrule" % subdir,
+        out = "dart/%s/%s.hpp" % (subdir, subdir),
+        hdrs = glob([
+            "dart/%s/*.hpp" % subdir,
+        ]),
+    )
+    for subdir in generated_includes
+]
+
+# collision has two subdirectories with generated includes unlike the above
+# so treat it as a separate case
+gz_include_header(
+    name = "collision_fcl_genrule",
+    out = "dart/collision/fcl/fcl.hpp",
+    hdrs = glob([
+        "dart/collision/fcl/*.hpp",
+    ]),
+)
+
+gz_include_header(
+    name = "collision_ode_genrule",
+    out = "dart/collision/ode/fcl.hpp",
+    hdrs = glob([
+        "dart/collision/ode/*.hpp",
+    ]),
+)
+
+gz_include_header(
+    name = "collision_bullet_genrule",
+    out = "dart/collision/bullet/bullet.hpp",
+    hdrs = glob([
+        "dart/collision/bullet/*.hpp",
+    ]),
+)
+
+gz_include_header(
+    name = "collision_dart_genrule",
+    out = "dart/collision/dart/dart.hpp",
+    hdrs = glob([
+        "dart/collision/dart/*.hpp",
+    ]),
+)
+
+gz_include_header(
+    name = "collision_genrule",
+    out = "dart/collision/collision.hpp",
+    hdrs = glob([
+        "dart/collision/*.hpp",
+    ]) + [
+        "dart/collision/dart/bullet.hpp",
+        "dart/collision/dart/dart.hpp",
+        "dart/collision/fcl/fcl.hpp",
+    ],
+)
+cmake_configure_file(
+  name = "config",
+  src = "dart/config.hpp.in",
+  out = "dart/config.hpp",
+  cmakelists = ["dart/CMakeLists.txt"],
+  defines = [
+    "PROJECT_NAME=dart",
+    "DART_MAJOR_VERSION=6",
+    "DART_MINOR_VERSION=13",
+    "DART_PATCH_VERSION=0",
+    "DART_VERSION=6.13.0",
+    "DART_PKG_DESC=Dynamic Animation and Robotics Toolkit",
+    "BUILD_TYPE_RELEASE=1",
+    "HAVE_BULLET=1",
+    "HAVE_ODE=1",
+    "HAVE_NLOPT=1",
+    "DART_HAVE_SIMD=1",
+    "DART_SOURCE_DIR=gz/third_party/dart",
+    "DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH=dart",
+    "CMAKE_INSTALL_PREFIX=."
+  ]
+)
+
+
+cc_library(
+  name = "external-imgui",
+  srcs = glob(["dart/external/imgui/*.cpp"]),
+  hdrs = glob(["dart/external/imgui/*.h"]),
+  includes = ["dart/external/imgui", "."]
+)
+
+cc_library(
+  name = "external-odelcpsolver",
+  srcs = glob(["dart/external/odelcpsolver/*.cpp"]),
+  hdrs = glob(["dart/external/odelcpsolver/*.h"]),
+  includes = ["dart/external/odelcpsolver"]
+)
+
+cc_library(
+  name = "external-lodepng",
+  srcs = glob(["dart/external/lodepng/*.cpp"]),
+  hdrs = glob(["dart/external/lodepng/*.h"]),
+  includes = ["dart/external/lodepng"]
+)
+
+cc_library(
+  name = "common",
+  srcs = glob([
+    "dart/common/*.cpp",
+    "dart/common/detail/*.cpp",
+  ]),
+  hdrs = glob([
+    "dart/common/*.hpp",
+    "dart/common/detail/*.hpp",
+  ]),
+  includes = ["."],
+  deps = [
+    "@eigen3",
+  ]
+)
+
+cc_library(
+  name = "math",
+  srcs = glob([
+    "dart/math/*.cpp",
+    "dart/math/detail/*.cpp",
+  ]),
+  hdrs = glob([
+    "dart/math/*.hpp",
+    "dart/math/detail/*.hpp",
+  ]),
+  deps = [
+    ":common",
+  ]
+)
+
+
+cc_library(
+  name = "dart",
+  srcs = glob([
+    "dart/constraint/*.cpp",
+    "dart/constraint/detail/*.cpp",
+    "dart/collision/*.cpp",
+    "dart/collision/dart/*.cpp",
+    "dart/collision/fcl/*.cpp",
+    "dart/dynamics/*.cpp",
+    "dart/dynamics/detail/*.cpp",
+    "dart/lcpsolver/*.cpp",
+    "dart/optimizer/*.cpp",
+    "dart/optimizer/nlopt/*.cpp",
+    "dart/simulation/*.cpp",
+    "dart/simulation/detail/*.cpp",
+  ]),
+  hdrs = glob([
+    "dart/constraint/*.hpp",
+    "dart/constraint/detail/*.hpp",
+    "dart/collision/*.hpp",
+    "dart/collision/dart/*.hpp",
+    "dart/collision/fcl/*.hpp",
+    "dart/dynamics/*.hpp",
+    "dart/dynamics/detail/*.hpp",
+    "dart/lcpsolver/*.hpp",
+    "dart/optimizer/*.hpp",
+    "dart/optimizer/nlopt/*.hpp",
+    "dart/simulation/*.hpp",
+    "dart/simulation/detail/*.hpp",
+  ]),
+  includes = ["."],
+  deps = [
+    "@fcl",
+    "@nlopt",
+    ":common",
+    ":math",
+    ":external-odelcpsolver",
+  ]
+)
+
+cc_library(
+  name = "collision-bullet",
+  srcs= glob([
+    "dart/collision/bullet/*.cpp",
+    "dart/collision/bullet/detail/*.cpp",
+  ]),
+  hdrs = glob([
+    "dart/collision/bullet/*.hpp",
+    "dart/collision/bullet/detail/*.hpp",
+  ]),
+  deps = [
+    ":dart",
+    GZ_ROOT + "third_party/bullet3:BulletCollision",
+  ]
+)
+
+cc_library(
+  name = "collision-ode",
+  srcs= glob([
+    "dart/collision/ode/*.cpp",
+    "dart/collision/ode/detail/*.cpp",
+  ]),
+  hdrs = glob([
+    "dart/collision/ode/*.hpp",
+    "dart/collision/ode/detail/*.hpp",
+  ]),
+  deps = [
+    ":dart",
+    "@ode",
+  ]
+)
+
+cc_library(
+  name = "utils",
+  srcs = glob([
+    "dart/utils/*.cpp",
+    "dart/utils/detail/*.cpp"
+  ]),
+  hdrs = glob([
+    "dart/utils/*.hpp",
+    "dart/utils/detail/*.hpp"
+  ]),
+  includes = ["."],
+  deps = [
+    ":dart",
+    "@tinyxml2"
+  ]
+)
+
+cc_library(
+  name = "utils-sdf",
+  srcs = glob([
+    "dart/utils/sdf/*.cpp"
+  ]),
+  hdrs = glob([
+    "dart/utils/sdf/*.hpp"
+  ]),
+  includes = ["."],
+  deps = [
+    ":utils"
+  ]
+)
+
+cc_library(
+  name = "utils-mjcf",
+  srcs = glob([
+    "dart/utils/mjcf/*.cpp",
+    "dart/utils/mjcf/detail/*.cpp"
+  ]),
+  hdrs = glob([
+    "dart/utils/mjcf/*.hpp",
+    "dart/utils/mjcf/detail/*.hpp"
+  ]),
+  includes = ["."],
+  deps = [
+    ":utils"
+  ]
+)
+
+cc_library(
+  name = "gui",
+  srcs = glob([
+    "dart/gui/*.cpp",
+    "dart/gui/glut/*.cpp",
+  ]),
+  hdrs = glob([
+    "dart/gui/*.hpp",
+    "dart/gui/glut/*.hpp",
+  ]),
+  includes = ["."],
+  deps = [
+    ":dart",
+    ":external-lodepng"
+  ]
+)
+
+cc_library(
+  name = "gui-osg",
+  srcs = glob([
+    "dart/gui/osg/*.cpp",
+    "dart/gui/osg/detail/*.cpp",
+    "dart/gui/osg/render/*.cpp",
+  ]),
+  hdrs = glob([
+    "dart/gui/osg/*.hpp",
+    "dart/gui/osg/detail/*.hpp",
+    "dart/gui/osg/render/*.hpp",
+  ]),
+  includes = ["."],
+  deps = [
+    ":gui",
+    ":external-imgui",
+    "@assimp",
+    "@eigen3",
+    "@osg//:osg",
+    "@osg//:osgDB",
+    "@osg//:osgGA",
+    "@osg//:osgShadow",
+    "@osg//:osgViewer"
+  ]
+)
+
+exports_files(["data"])
