@@ -81,6 +81,17 @@ gz_include_header(
         "dart/collision/fcl/fcl.hpp",
     ],
 )
+
+gz_include_header(
+    name = "gui_osg_genrule",
+    out = "dart/gui/osg/osg.hpp",
+    hdrs = glob([
+        "dart/gui/osg/*.hpp",
+        "dart/gui/osg/render/*.hpp"
+
+    ]),
+)
+
 cmake_configure_file(
   name = "config",
   src = "dart/config.hpp.in",
@@ -305,7 +316,9 @@ cc_library(
     "dart/gui/osg/*.hpp",
     "dart/gui/osg/detail/*.hpp",
     "dart/gui/osg/render/*.hpp",
-  ]),
+  ]) + [
+    "dart/gui/osg/osg.hpp"
+  ],
   includes = ["."],
   deps = [
     ":gui",
