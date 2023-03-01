@@ -8,6 +8,8 @@ cc_binary(
   srcs = ["hello_world/main.cpp"],
   deps = [
     GZ_ROOT + "third_party/dart:dart",
+    GZ_ROOT + "third_party/dart:common",
+    GZ_ROOT + "third_party/dart:dynamics",
     GZ_ROOT + "third_party/dart:gui-osg",
   ]
 )
