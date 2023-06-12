@@ -110,8 +110,9 @@ cmake_configure_file(
     "DART_SOURCE_DIR=gz/third_party/dart",
     "DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH=dart",
     "CMAKE_INSTALL_PREFIX=.",
-    "ASSIMP_AISCENE_CTOR_DTOR_DEFINED=1",
-    "ASSIMP_AIMATERIAL_CTOR_DTOR_DEFINED=1"
+    # At least for Jammy, this is required.
+    "ASSIMP_AISCENE_CTOR_DTOR_DEFINED=0",
+    "ASSIMP_AIMATERIAL_CTOR_DTOR_DEFINED=0"
   ],
 )
 
@@ -465,6 +466,7 @@ cc_library(
     ":dynamics",
     ":gui",
     ":external-imgui",
+    "@assimp",
     "@eigen3",
     "@osg//:osg",
     "@osg//:osgDB",
