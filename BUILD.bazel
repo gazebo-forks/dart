@@ -465,7 +465,6 @@ cc_library(
     ":dynamics",
     ":gui",
     ":external-imgui",
-    GZ_ROOT + "third_party/assimp",
     "@eigen3",
     "@osg//:osg",
     "@osg//:osgDB",
