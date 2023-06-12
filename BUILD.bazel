@@ -109,8 +109,10 @@ cmake_configure_file(
     "DART_HAVE_SIMD=1",
     "DART_SOURCE_DIR=gz/third_party/dart",
     "DART_ADDITIONAL_DOCUMENTATION_INSTALL_PATH=dart",
-    "CMAKE_INSTALL_PREFIX=."
-  ]
+    "CMAKE_INSTALL_PREFIX=.",
+    "ASSIMP_AISCENE_CTOR_DTOR_DEFINED=1",
+    "ASSIMP_AIMATERIAL_CTOR_DTOR_DEFINED=1"
+  ],
 )
 
 cc_library(
@@ -463,7 +465,7 @@ cc_library(
     ":dynamics",
     ":gui",
     ":external-imgui",
-    "@assimp",
+    GZ_ROOT + "third_party/assimp",
     "@eigen3",
     "@osg//:osg",
     "@osg//:osgDB",
