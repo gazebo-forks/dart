@@ -794,6 +794,9 @@ ContactConstraint::getTangentBasisMatrixODE(const Eigen::Vector3d& n)
 
   // Pick an arbitrary vector to take the cross product of (in this case,
   // Z-axis)
+  // Note: The upstream version of DART uses the opposite order of operands for
+  // this cross-product. Hence, the sign convention for contact surface motion
+  // velocities has to be inverted (see the note in ContactSurface.hpp).
   Eigen::Vector3d tangent = mFirstFrictionalDirection.cross(n);
 
   // TODO(JS): Modify following lines once _updateFirstFrictionalDirection() is

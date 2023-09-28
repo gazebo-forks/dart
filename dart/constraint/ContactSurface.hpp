@@ -38,6 +38,15 @@
 #include "dart/dynamics/ShapeNode.hpp"
 #include "dart/constraint/SmartPointer.hpp"
 
+// The implementation of ContactConstraint::getTangentBasisMatrixODE in the
+// upstream version of DART uses a different sign convention. This define is
+// used to conditionally negate contact surface motion velocities if the down
+// stream library is using the upstream DART implementation. If forward porting
+// to or merging from upstream DART, be sure to remove this define if the
+// implementation in ContactConstraint::getTangentBasisMatrixODE matches the
+// upstream version after the port.
+#define DART_HAS_POSITIVE_CONTACT_SURFACE_MOTION_VELOCITY
+
 namespace dart {
 namespace constraint {
 
