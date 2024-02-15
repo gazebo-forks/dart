@@ -250,6 +250,7 @@ cc_library(
   ],
   includes = ["."],
   deps = [
+    ":common_headers",
     ":math_headers",
     ":optimizer_headers"
   ]
@@ -335,7 +336,10 @@ cc_library(
   ]) + [
     "dart/constraint/constraint.hpp",
   ],
-  includes = ["."]
+  includes = ["."],
+  deps = [
+    ":collision_headers",
+  ]
 )
 
 cc_library(
