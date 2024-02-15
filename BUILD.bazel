@@ -150,11 +150,7 @@ cc_library(
 )
 
 cc_library(
-  name = "common",
-  srcs = glob([
-    "dart/common/*.cpp",
-    "dart/common/detail/*.cpp",
-  ]),
+  name = "common_headers",
   hdrs = glob([
     "dart/common/*.hpp",
     "dart/common/detail/*.hpp",
@@ -163,8 +159,30 @@ cc_library(
     "dart/common/common.hpp",
   ],
   includes = ["."],
+)
+
+cc_library(
+  name = "common",
+  srcs = glob([
+    "dart/common/*.cpp",
+    "dart/common/detail/*.cpp",
+  ]),
   deps = [
+    ":common_headers",
     "@eigen3",
+  ]
+)
+
+cc_library(
+  name = "math_headers",
+  hdrs = glob([
+    "dart/math/*.hpp",
+    "dart/math/detail/*.hpp",
+  ]) + [
+    "dart/math/math.hpp"
+  ],
+  deps = [
+    ":external-convhull_3d"
   ]
 )
 
@@ -174,13 +192,8 @@ cc_library(
     "dart/math/*.cpp",
     "dart/math/detail/*.cpp",
   ]),
-  hdrs = glob([
-    "dart/math/*.hpp",
-    "dart/math/detail/*.hpp",
-  ]) + [
-    "dart/math/math.hpp"
-  ],
   deps = [
+    ":math_headers",
     ":common",
     ":external-convhull_3d"
   ]
@@ -203,11 +216,7 @@ cc_library(
 )
 
 cc_library(
-  name = "optimizer",
-  srcs = glob([
-    "dart/optimizer/*.cpp",
-    "dart/optimizer/nlopt/*.cpp",
-  ]),
+  name = "optimizer_headers",
   hdrs = glob([
     "dart/optimizer/*.hpp",
     "dart/optimizer/nlopt/*.hpp",
@@ -215,10 +224,34 @@ cc_library(
     "dart/optimizer/optimizer.hpp",
   ],
   includes = ["."],
+)
+
+cc_library(
+  name = "optimizer",
+  srcs = glob([
+    "dart/optimizer/*.cpp",
+    "dart/optimizer/nlopt/*.cpp",
+  ]),
   deps = [
+    ":optimizer_headers",
     ":common",
     ":math",
     "@nlopt"
+  ]
+)
+
+cc_library(
+  name = "dynamics_headers",
+  hdrs = glob([
+    "dart/dynamics/*.hpp",
+    "dart/dynamics/detail/*.hpp",
+  ]) + [
+    "dart/dynamics/dynamics.hpp",
+  ],
+  includes = ["."],
+  deps = [
+    ":math_headers",
+    ":optimizer_headers"
   ]
 )
 
@@ -228,18 +261,25 @@ cc_library(
     "dart/dynamics/*.cpp",
     "dart/dynamics/detail/*.cpp",
   ]),
-  hdrs = glob([
-    "dart/dynamics/*.hpp",
-    "dart/dynamics/detail/*.hpp",
-  ]) + [
-    "dart/dynamics/dynamics.hpp",
-  ],
-  includes = ["."],
   deps = [
+    ":dynamics_headers",
     ":common",
     ":math",
     ":optimizer",
     ":external-ikfast",
+  ]
+)
+
+cc_library(
+  name = "collision_headers",
+  hdrs = glob([
+    "dart/collision/*.hpp",
+    "dart/collision/detail/*.hpp",
+  ]),
+  includes = ["."],
+  deps = [
+    ":common_headers",
+    ":dynamics_headers"
   ]
 )
 
@@ -251,9 +291,7 @@ cc_library(
     "dart/collision/fcl/*.cpp",
   ]),
   hdrs = glob([
-    "dart/collision/*.hpp",
     "dart/collision/dart/*.hpp",
-    "dart/collision/detail/*.hpp",
     "dart/collision/fcl/*.hpp",
   ]) + [
     "dart/collision/collision.hpp",
@@ -262,8 +300,10 @@ cc_library(
   ],
   includes = ["."],
   deps = [
+    ":collision_headers",
     ":common",
     ":dynamics",
+    "@ccd",
     "@eigen3",
     "@fcl"
   ]
@@ -288,19 +328,25 @@ cc_library(
 )
 
 cc_library(
-  name = "constraint",
-  srcs = glob([
-    "dart/constraint/*.cpp",
-    "dart/constraint/detail/*.cpp",
-  ]),
+  name = "constraint_headers",
   hdrs = glob([
     "dart/constraint/*.hpp",
     "dart/constraint/detail/*.hpp",
   ]) + [
     "dart/constraint/constraint.hpp",
   ],
+  includes = ["."]
+)
+
+cc_library(
+  name = "constraint",
+  srcs = glob([
+    "dart/constraint/*.cpp",
+    "dart/constraint/detail/*.cpp",
+  ]),
   includes = ["."],
   deps = [
+    ":constraint_headers",
     ":collision",
     ":common",
     ":dynamics",
@@ -309,11 +355,7 @@ cc_library(
 )
 
 cc_library(
-  name = "simulation",
-  srcs = glob([
-    "dart/simulation/*.cpp",
-    "dart/simulation/detail/*.cpp",
-  ]),
+  name = "simulation_headers",
   hdrs = glob([
     "dart/simulation/*.hpp",
     "dart/simulation/detail/*.hpp",
@@ -321,11 +363,20 @@ cc_library(
     "dart/simulation/simulation.hpp",
   ],
   includes = ["."],
+)
+
+cc_library(
+  name = "simulation",
+  srcs = glob([
+    "dart/simulation/*.cpp",
+    "dart/simulation/detail/*.cpp",
+  ]),
   deps = [
     ":collision",
     ":common",
     ":constraint",
     ":integration",
+    ":simulation_headers",
   ]
 )
 
